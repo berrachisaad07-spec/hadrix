@@ -1,0 +1,183 @@
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import time
+import random
+import os
+
+# ⚠️ إعدادات الحساب والفيديو (عدلها حسب حاجتك)
+GMAIL = "your_email@gmail.com"
+PASSWORD = "your_password_here"
+CHANNEL_URL = "https://www.youtube.com/@NabdeQuran"
+VIDEO_NAME = "اسم الفيديو ديالك هنا"  # 🔹 دير اسم الفيديو بالضبط كما يظهر في يوتيوب
+
+# إعدادات البروفايلات المتعددة
+base_dir = "C:/ChromeProfiles"
+accounts = [f"Account{i}" for i in range(1, 6)]
+
+def login_to_google(driver, wait):
+    """دالة تسجيل الدخول لحساب جوجل (موصى بتعطيلها إذا كانت البروفايلات مسجلة مسبقاً)"""
+    driver.get("https://accounts.google.com")
+    time.sleep(2)
+    try:
+        email_input = wait.until(EC.presence_of_element_located((By.NAME, "identifier")))
+        email_input.send_keys(GMAIL)
+        time.sleep(1)
+        driver.find_element(By.ID, "identifierNext").click()
+        time.sleep(3)
+
+        password_input = wait.until(EC.presence_of_element_located((By.NAME, "Passwd")))
+        password_input.send_keys(PASSWORD)
+        time.sleep(1)
+        driver.find_element(By.ID, "passwordNext").click()
+        
+        print("⏳ جاري تسجيل الدخول... يرجى الانتظار")
+        time.sleep(5)
+    except Exception:
+        print("⚠️ قد يكون الحساب مسجلاً بالفعل أو ظهر تحقق (CAPTCHA). جاري المتابعة...")
+
+def subscribe_to_channel(driver, wait):
+    """دالة الاشتراك في القناة"""
+    driver.get(CHANNEL_URL)
+    time.sleep(3)
+    subscribe_xpath = "//button[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'subscribe') or contains(., 'اشتراك')]"
+    try:
+        button = wait.until(EC.element_to_be_clickable((By.XPATH, subscribe_xpath)))
+        print("✅ تم العثور على زر الاشتراك.")
+        button.click()
+        print("✅ تم الضغط على زر الاشتراك بنجاح.")
+        time.sleep(3)
+    except Exception:
+        print("⚠️ لم يتم العثور على زر الاشتراك أو أنك مشترك بالفعل.")
+
+def watch_video_realistically(driver, wait):
+    """دالة البحث والمشاهدة الواقعية للفيديو"""
+    driver.get("https://www.youtube.com")
+    time.sleep(random.randint(3, 6))
+
+    # 1. البحث عن الفيديو
+    try:
+        search_box = wait.until(EC.presence_of_element_located((By.NAME, "search_query")))
+        search_box.clear()
+        search_box.send_keys(VIDEO_NAME)
+        search_box.submit()
+    except Exception:
+        print("❌ فشل في العثور على مربع البحث.")
+        return False
+
+    time.sleep(random.randint(4, 8))
+
+    # 2. العثور على الفيديو والنقر عليه
+    found = False
+    videos = driver.find_elements(By.ID, "video-title")
+    for vid in videos:
+        title = vid.get_attribute("title")
+        if title and VIDEO_NAME.lower() in title.lower():
+            vid.click()
+            found = True
+            print(f"✅ تم العثور على الفيديو والنقر عليه: {title}")
+            break
+
+    if not found:
+        print(f"❌ لم يتم العثور على الفيديو: {VIDEO_NAME}")
+        return False
+
+    # 3. مدة مشاهدة طويلة ومحاكاة سلوك بشري
+    total_watch = random.randint(500, 1000)
+    start_time = time.time()
+    print(f"⏳ جاري مشاهدة الفيديو لمدة تقارب {total_watch} ثانية...")
+
+    while time.time() - start_time < total_watch:
+        # تمرير الصفحة (Scroll) بشكل عشوائي لمحاكاة القراءة أو التفاعل
+        scroll_amount = random.randint(200, 600)
+        driver.execute_script(f"window.scrollBy(0, {scroll_amount});")
+        time.sleep(random.randint(5, 12))
+
+        action = random.random()
+        
+        # 🔹 تبديل فيديو مقترح (Suggested) لمحاكاة التصفح العادي
+        if action < 0.25:
+            try:
+                suggestions = driver.find_elements(By.ID, "video-title")
+                # تصفية الفيديوهات لتجنب النقر على نفس الفيديو الحالي
+                valid_suggestions = [v for v in suggestions if v.get_attribute("title") and VIDEO_NAME.lower() not in v.get_attribute("title").lower()]
+                if valid_suggestions:
+                    random.choice(valid_suggestions).click()
+                    print("🔄 تم النقر على فيديو مقترح.")
+                    time.sleep(random.randint(30, 90))
+                    driver.back() # الرجوع للفيديو الأصلي
+                    time.sleep(3)
+            except Exception:
+                pass
+                
+        # 🔹 رجوع للصفحة الرئيسية ثم إعادة البحث (محاكاة تنقل بشري متقدم)
+        elif action < 0.35:
+            driver.get("https://www.youtube.com")
+            time.sleep(random.randint(5, 10))
+            try:
+                search_box = driver.find_element(By.NAME, "search_query")
+                search_box.clear()
+                search_box.send_keys(VIDEO_NAME)
+                search_box.submit()
+                time.sleep(5)
+                videos = driver.find_elements(By.ID, "video-title")
+                for vid in videos:
+                    if vid.get_attribute("title") and VIDEO_NAME.lower() in vid.get_attribute("title").lower():
+                        vid.click()
+                        break
+            except Exception:
+                pass
+                
+        # 🔹 البقاء في وضع المشاهدة مع توقفات عشوائية
+        else:
+            time.sleep(random.randint(10, 25))
+
+    return True
+
+# ==========================================
+# الحلقة الرئيسية لتنفيذ المهام على كل البروفايلات
+# ==========================================
+for acc in accounts:
+    print(f"\n{'='*60}")
+    print(f"🚀 بدء العمل على البروفايل: {acc}")
+    print(f"{'='*60}")
+    
+    path = os.path.join(base_dir, acc)
+    os.makedirs(path, exist_ok=True)
+
+    options = Options()
+    options.add_argument(f"--user-data-dir={path}")
+    options.add_argument("--start-maximized")
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option('useAutomationExtension', False)
+
+    driver = webdriver.Chrome(options=options)
+    wait = WebDriverWait(driver, 15)
+
+    try:
+        # 1. تسجيل الدخول (مفعل حالياً كمثال، يُفضل تعطيله إذا كانت البروفايلات مسجلة مسبقاً)
+        # login_to_google(driver, wait)
+        
+        # 2. الاشتراك في القناة
+        subscribe_to_channel(driver, wait)
+        
+        # 3. البحث والمشاهدة الواقعية
+        watch_video_realistically(driver, wait)
+
+    except Exception as e:
+        print(f"❌ حدث خطأ أثناء العمل على {acc}: {e}")
+    
+    finally:
+        # 🔹 إغلاق المتصفح
+        driver.quit()
+        print(f"✅ تم إغلاق متصفح {acc} بنجاح.")
+
+        # ⏸️ توقف عشوائي طويل بين الحسابات لتجنب الحظر (Anti-Ban)
+        pause = random.randint(60, 200)
+        print(f"⏸️ انتظار لمدة {pause} ثانية قبل الانتقال للحساب التالي...")
+        time.sleep(pause)
+
+print("\n🎉 انتهت جميع المهام بنجاح على جميع البروفايلات!")

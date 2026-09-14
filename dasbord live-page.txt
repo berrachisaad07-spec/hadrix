@@ -1,0 +1,1542 @@
+import tkinter as tk
+from tkinter import ttk, messagebox, scrolledtext, filedialog
+import json
+import os
+import re
+from datetime import datetime
+import pickle
+import webbrowser
+import threading
+import traceback
+
+# ==========================================
+# 1. إعدادات Blogger
+# ==========================================
+PUBLISH_TO_BLOGGER = True
+BLOG_ID = "5612271200026207833"
+CREDENTIALS_FILE = "credentials(3).json"
+TOKEN_FILE = "token(3).json"
+
+BLOGGER_CONFIG = {
+    "id": 1,
+    "name": "المدونة الرئيسية - Saad Live",
+    "blog_id": BLOG_ID,
+    "credentials_file": CREDENTIALS_FILE,
+    "token_file": TOKEN_FILE,
+    "base_url": "https://www.saad-match.opik.net/",
+    "active": True,
+    "group": "primary"
+}
+
+# ==========================================
+# 2. إعلانات Adsterra
+# ==========================================
+ADSTERRA_ADS = {
+    "top_banner": """
+    <div class="ad-container ad-top">
+        <script>
+          atOptions = {
+            'key' : 'b58516931db6e6713a3db3d6e402c7e1',
+            'format' : 'iframe',
+            'height' : 90,
+            'width' : 728,
+            'params' : {}
+          };
+        </script>
+        <script src="https://www.highperformanceformat.com/b58516931db6e6713a3db3d6e402c7e1/invoke.js"></script>
+    </div>
+    """,
+    "middle_square": """
+    <div class="ad-container ad-middle">
+        <script>
+          atOptions = {
+            'key' : 'ad0330a6addd8725919e56bfc63df147',
+            'format' : 'iframe',
+            'height' : 250,
+            'width' : 300,
+            'params' : {}
+          };
+        </script>
+        <script src="https://www.highperformanceformat.com/ad0330a6addd8725919e56bfc63df147/invoke.js"></script>
+    </div>
+    """,
+    "bottom_mobile": """
+    <div class="ad-container ad-bottom">
+        <script>
+          atOptions = {
+            'key' : 'e36744c6a865adfe938b4707656542f9',
+            'format' : 'iframe',
+            'height' : 50,
+            'width' : 320,
+            'params' : {}
+          };
+        </script>
+        <script src="https://www.highperformanceformat.com/e36744c6a865adfe938b4707656542f9/invoke.js"></script>
+    </div>
+    """
+}
+
+# ==========================================
+# 3. شعارات الفرق
+# ==========================================
+TEAM_LOGOS = {
+    "السنغال": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/24/Senegal2018_7_24_14_48.jpg",
+    "مالي": "https://media.gemini.media/img/yallakora/IOSTeams//120//2024/2/21/mali12024_2_21_19_50.jpg",
+    "غينيا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2022/8/3/guinea12022_8_3_19_51.jpg",
+    "ليبيا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2024/2/21/libya12024_2_21_19_56.jpg",
+    "مصر": "https://media.gemini.media/img/yallakora/IOSTeams//120//2022/8/3/egypt12022_8_3_16_40.jpg",
+    "أوغندا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2022/8/3/uganda12022_8_3_17_34.jpg",
+    "أنجولا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2022/8/3/angola12022_8_3_19_38.jpg",
+    "جنوب السودان": "https://media.gemini.media/img/yallakora/IOSTeams//120//2022/8/3/south_sudan12022_8_3_17_59.jpg",
+    "إنبي": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/24/Enppi2018_7_24_13_29.jpg",
+    "وادي دجلة": "https://media.gemini.media/img/yallakora/IOSTeams//120//2019/2/18/WadiDegla2019_2_18_10_17.jpg",
+    "غزل المحلة": "https://media.gemini.media/img/yallakora/IOSTeams//120//2024/9/11/ghazel12024_9_11_21_58.jpg"
+}
+
+def get_team_logo(team_name):
+    """الحصول على شعار الفريق"""
+    clean_name = team_name.strip()
+    if clean_name in TEAM_LOGOS:
+        return TEAM_LOGOS[clean_name]
+    for key, logo in TEAM_LOGOS.items():
+        if key in clean_name or clean_name in key:
+            return logo
+    return f"https://via.placeholder.com/80?text={clean_name[:15]}"
+
+# ==========================================
+# 4. CSS الكامل
+# ==========================================
+FULL_MATCH_CSS = """
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cairo&display=swap');
+  body {
+    font-family: 'Cairo', sans-serif;
+    background: #f9f9f9;
+    padding: 0;
+    margin: 0;
+    direction: rtl;
+    color: #333;
+  }
+  .tabs-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 10px;
+  }
+  .tab-button {
+    padding: 10px 20px;
+    margin-right: 10px;
+    background-color: #900C3F;
+    cursor: pointer;
+    font-weight: bold;
+    border: 1px solid #999;
+    border-radius: 5px;
+    color: white;
+  }
+  .tab-button.active {
+    background-color: #581845;
+  }
+  .field-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 10px;
+  }
+  .field {
+    position: relative;
+    width: 150vw;
+    height: 55vh;
+    max-width: 400px;
+    max-height: 280px;
+    background: url('https://c.top4top.io/p_3645ihjh41.png') no-repeat center/contain;
+    border: 4px solid rgba(0, 0, 0, 0);
+    border-radius: 3px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  .player, .coach {
+    position: absolute;
+    width: 43px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  .player img, .coach img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+  }
+  .player-number {
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    background: linear-gradient(135deg, #f0f0f0, #d9d9d9);
+    color: #222;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    top: -3px;
+    right: -4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease-in-out;
+    z-index: 10;
+  }
+  .player-name {
+    position: absolute;
+    top: 103%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: black;
+    white-space: nowrap;
+    max-width: 100%;
+    overflow: visible;
+  }
+  .coach-name {
+    position: absolute;
+    top: 72%;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 2px 6px;
+    font-family: 'Poppins', 'Cairo', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #222;
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 20px;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.12);
+    white-space: nowrap;
+    opacity: 0;
+    animation: fadeInUp 0.5s ease forwards;
+    z-index: 10;
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translate(-50%, 6px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+  }
+  .baMatch {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-align: center;
+    padding: 15px 0;
+  }
+  .colmd { flex: 1; }
+  .ce { max-width: 80px; }
+  .teamlogo {
+    width: 80px; height: 80px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    margin: 0 auto 10px;
+    border-radius: 50%;
+    border: none;
+  }
+  .teamname {
+    font-size: 12px; font-weight: 600;
+    text-align: center; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+    max-width: 120px; display: inline-block;
+  }
+  .matchvs { font-size: 24px; font-weight: bold; color: #555; }
+  .TableMatch {
+    max-width: 700px; margin: 20px auto;
+    border: 1px solid #ddd; border-radius: 10px;
+    overflow: hidden;
+    background: linear-gradient(to right, #070708, #AEC51D, #151801);
+    box-sizing: border-box;
+  }
+  .TableMatch h3 {
+    background: linear-gradient(to right, #070708, #AEC51D, #151801);
+    color: white; padding: 15px; margin: 0;
+    font-size: 20px; border-radius: 10px 10px 0 0;
+  }
+  .TableMatch table { width: 100%; border-collapse: collapse; }
+  .TableMatch th, .TableMatch td {
+    padding: 12px; font-size: 16px;
+    border-bottom: 1px solid #f1f1f1; text-align: right;
+  }
+  .TableMatch th {
+    background: linear-gradient(to right, #AEC51D, #C5760A);
+    width: 30%;
+  }
+  .posts-content h2 { color: #d62828; font-size: 24px; margin-bottom: 15px; }
+  .posts-content h3 {
+    color: #003049; font-size: 20px; margin-top: 25px;
+    border-bottom: 2px solid #e63946; display: inline-block; padding-bottom: 5px;
+  }
+  .posts-content strong { color: #2a9d8f; }
+  .toggle-subs-btn {
+    display: block; margin: 15px auto 10px;
+    background: linear-gradient(135deg, #900C3F, #C70039);
+    color: white; border: none; padding: 10px 18px;
+    border-radius: 8px; font-weight: bold; cursor: pointer;
+    font-size: 0.95rem; box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    transition: background 0.3s ease, transform 0.2s ease; max-width: 240px;
+  }
+  .toggle-subs-btn:hover {
+    background: linear-gradient(135deg, #C70039, #900C3F);
+    transform: scale(1.03);
+  }
+  .subs-absents-overlay {
+    position: fixed; top: 10%; left: 50%;
+    transform: translateX(-50%); width: 90%; max-width: 850px;
+    padding: 30px 25px; background: rgba(25, 25, 25, 0.92);
+    backdrop-filter: blur(10px); border: 1px solid rgba(199, 0, 57, 0.6);
+    border-radius: 18px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+    font-family: 'Cairo', sans-serif; color: #fff; z-index: 9999;
+    display: none; animation: fadeIn 0.4s ease-out forwards;
+    overflow-y: auto; max-height: 85vh;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+  .subs-absents-section { margin-bottom: 20px; }
+  .subs-absents-section h4 {
+    font-size: 1.1rem; color: #fff;
+    background: linear-gradient(90deg, #900C3F, #C70039);
+    border-radius: 6px; padding: 8px 12px;
+    margin-bottom: 14px; display: inline-block;
+  }
+  .subs-absents-list {
+    display: flex; flex-wrap: wrap; gap: 15px; justify-content: start;
+  }
+  .subs-absents-player {
+    position: relative; width: 70px; text-align: center;
+  }
+  .subs-absents-player .photo {
+    width: 60px; height: 60px; border-radius: 50%;
+    border: 2px solid #fff; box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    object-fit: cover;
+  }
+  .subs-absents-player .number {
+    position: absolute; top: -6px; left: -6px;
+    background: #C70039; color: #fff; font-size: 12px;
+    width: 20px; height: 20px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: bold;
+  }
+  .subs-absents-player .name {
+    margin-top: 4px; font-size: 12px; color: #ddd;
+  }
+  #closeSubsBtn {
+    position: absolute; top: 12px; left: 12px;
+    background: linear-gradient(135deg, #900C3F, #C70039);
+    color: white; border: none; padding: 8px 14px;
+    border-radius: 8px; cursor: pointer; font-weight: 700;
+    font-size: 0.875rem;
+    box-shadow: 0 4px 12px rgba(144, 12, 63, 0.3); z-index: 10000;
+  }
+  .ad-container {
+    display: flex; justify-content: center; align-items: center;
+    margin: 15px auto; padding: 5px;
+    background: rgba(255,255,255,0.05); border-radius: 8px; min-height: 50px;
+  }
+  .ad-top { max-width: 728px; margin: 10px auto 20px; }
+  .ad-middle { max-width: 300px; margin: 25px auto; float: left; margin-right: 20px; }
+  .ad-bottom { max-width: 320px; margin: 20px auto 10px; clear: both; }
+  @media (max-width: 768px) {
+    .ad-top { max-width: 100%; }
+    .ad-middle { float: none; margin: 20px auto; }
+  }
+</style>
+""".strip()
+
+# ==========================================
+# 5. دوال تحليل المباريات
+# ==========================================
+def normalize_time(time_str):
+    """تحويل الوقت إلى صيغة 24 ساعة"""
+    time_str = time_str.strip()
+    if 'مساءً' in time_str or 'م' in time_str:
+        time_str = re.sub(r'[مساءًم]', '', time_str).strip()
+        h, m = time_str.split(':')
+        h = 12 if h == 12 else (int(h) % 12) + 12
+        return f"{h:02d}:{int(m):02d}"
+    elif 'صباحًا' in time_str or 'ص' in time_str:
+        time_str = re.sub(r'[صباحًاص]', '', time_str).strip()
+        h, m = time_str.split(':')
+        return f"{int(h):02d}:{int(m):02d}"
+    else:
+        parts = time_str.split(':')
+        return f"{int(parts[0]):02d}:{int(parts[1]):02d}"
+
+def parse_matches(text):
+    """تحليل قائمة المباريات وتجميع الروابط"""
+    matches_dict = {}
+    for line in text.split('\n'):
+        line = line.strip()
+        if not line:
+            continue
+        match = re.match(r'(\d{1,2}:\d{2}(?:\s*(?:صباحًا|مساءً|ص|م))?)\s+(.+?)\s*[×xXضدvs]+\s*(.+?)\s*\|\s*(https?://.+)', line, re.IGNORECASE)
+        if match:
+            time_str = match.group(1)
+            team1 = match.group(2).strip()
+            team2 = match.group(3).strip()
+            url = match.group(4).strip()
+            
+            time_24 = normalize_time(time_str)
+            is_special = any(x in team1.lower() for x in ['rugby', 'nba'])
+            
+            if is_special:
+                key = f"{team1}||{time_24}"
+            else:
+                key = f"{team1}||{team2}||{time_24}"
+            
+            if key not in matches_dict:
+                matches_dict[key] = {
+                    'time': time_24,
+                    'team1': team1,
+                    'team2': '' if is_special else team2,
+                    'urls': [],
+                    'is_special': is_special
+                }
+            
+            if url not in matches_dict[key]['urls']:
+                matches_dict[key]['urls'].append(url)
+    
+    return list(matches_dict.values())
+
+# ==========================================
+# 6. قالب بطاقة المباراة
+# ==========================================
+def generate_match_card(match, extra_info=None):
+    """توليد بطاقة المباراة بصيغة Blogger"""
+    team1 = match['team1']
+    team2 = match['team2']
+    logo1 = get_team_logo(team1)
+    logo2 = get_team_logo(team2) if team2 else logo1
+    
+    extra = extra_info or {}
+    channel = extra.get('channel', 'قناة رياضية')
+    commentator = extra.get('commentator', 'معلق رياضي')
+    league = extra.get('league', 'دوري كرة القدم')
+    
+    try:
+        h, m = map(int, match['time'].split(':'))
+        period = "PM" if h >= 12 else "AM"
+        h12 = h if h <= 12 else h - 12
+        if h12 == 0:
+            h12 = 12
+        time_12 = f"{h12:02d}:{m:02d} {period}"
+    except:
+        time_12 = match['time']
+    
+    return f"""<!-- [ {team1} ضد {team2} ] -->
+<div class="containerMatch">
+<a href="https://www.saad-live.kozow.com/p/match-{team1.replace(' ','-')}-vs-{team2.replace(' ','-')}.html" title="مشاهدة مباراة {team1} و {team2} اليوم بث مباشر">
+<div class="Match">
+<div class="fareq"><div class="Imagee"><img alt="{team1}" class="col-img lazy" height="70" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAQAAAA3fa6RAAAADklEQVR42mNkAANGCAUAACMAA2w/AMgAAAAASUVORK5CYII=" data-src="{logo1}" title="{team1}" width="70" /></div><div class="asm">{team1}</div></div>
+<div class="Nateja"><div class="matchHour">{time_12}</div><div class="natej">0-0</div></div>
+<div class="fareq"><div class="Imagee"><img alt="{team2 or 'الفريق الثاني'}" class="col-img lazy" height="70" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAQAAAA3fa6RAAAADklEQVR42mNkAANGCAUAACMAA2w/AMgAAAAASUVORK5CYII=" data-src="{logo2}" title="{team2 or 'الفريق الثاني'}" width="70" /></div><div class="asm">{team2 or ''}</div></div>
+</div>
+<div class="Show"></div><ul><li>{channel}</li><li>{commentator}</li><li>{league}</li></ul>
+</a>
+</div>"""
+
+# ==========================================
+# 7. قالب الصفحة الكاملة
+# ==========================================
+def generate_full_page(match, extra_info=None):
+    """توليد الصفحة الكاملة المطابقة للمثال"""
+    team1 = match['team1']
+    team2 = match['team2']
+    time = match['time']
+    
+    extra = extra_info or {}
+    league = extra.get('league', 'دوري كرة القدم')
+    channel = extra.get('channel', 'قناة رياضية')
+    commentator = extra.get('commentator', 'غير معروف')
+    stadium = extra.get('stadium', 'ملعب غير معروف')
+    
+    logo1 = get_team_logo(team1)
+    logo2 = get_team_logo(team2) if team2 else logo1
+    
+    date = datetime.now().strftime('%Y-%m-%d')
+    startDateTimeISO = f"{date}T{time}:00+03:00" if time != "غير معروف" else f"{date}T00:00:00+03:00"
+    
+    ld_json = f'''{{"@context":"https://schema.org","@type":"SportsEvent","name":"مباراة {team1} ضد {team2} - {league}","startDate":"{startDateTimeISO}","eventAttendanceMode":"https://schema.org/MixedEventAttendanceMode","eventStatus":"https://schema.org/EventScheduled","location":{{"@type":"Place","name":"{stadium}","address":{{"@type":"PostalAddress","addressCountry":"SA"}}}},"performer":[{{"@type":"SportsTeam","name":"{team1}"}},{{"@type":"SportsTeam","name":"{team2}"}}],"organizer":{{"@type":"Organization","name":"Saad Live | سعد لايف","url":"https://www.saad-live.giize.com/"}}, "url":"{startDateTimeISO}"}}'''
+    
+    lineup_js = f'''
+<script>
+const teams = {{
+  "{team1}": {{
+    players: [],
+    coach: {{ name: "غير معروف", image: "https://via.placeholder.com/32", left: "50%", top: "85%" }},
+    subs: [], absents: []
+  }},
+  "{team2 or 'الفريق الثاني'}": {{
+    players: [],
+    coach: {{ name: "غير معروف", image: "https://via.placeholder.com/32", left: "50%", top: "85%" }},
+    subs: [], absents: []
+  }}
+}};
+function renderPlayers(teamName) {{
+  const field = document.getElementById("field");
+  field.innerHTML = "";
+  const team = teams[teamName];
+  if (!team) return;
+  team.players.forEach(p => {{
+    const player = document.createElement("div");
+    player.className = "player";
+    player.style.left = p.left || "50%";
+    player.style.top = p.top || "50%";
+    const img = document.createElement("img");
+    img.src = p.image || "https://via.placeholder.com/48";
+    const num = document.createElement("div");
+    num.className = "player-number";
+    num.textContent = p.number || "";
+    const name = document.createElement("div");
+    name.className = "player-name";
+    name.textContent = p.name || "";
+    player.appendChild(img); player.appendChild(num); player.appendChild(name);
+    field.appendChild(player);
+  }});
+  const coach = document.createElement("div");
+  coach.className = "coach";
+  coach.style.left = team.coach.left; coach.style.top = team.coach.top;
+  const img = document.createElement("img");
+  img.src = team.coach.image;
+  const name = document.createElement("div");
+  name.className = "coach-name";
+  name.textContent = team.coach.name;
+  coach.appendChild(img); coach.appendChild(name);
+  field.appendChild(coach);
+}}
+function changeLineup(teamName) {{
+  document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+  const btn = [...document.querySelectorAll('.tab-button')].find(b => b.textContent === teamName);
+  if (btn) btn.classList.add('active');
+  renderPlayers(teamName);
+}}
+document.addEventListener("DOMContentLoaded", () => {{
+  changeLineup("{team1}");
+}});
+</script>
+'''
+    
+    seo_content = f'''
+<div class="posts-content">
+
+<h2>مشاهدة مباراة {team1} ضد {team2} بث مباشر اليوم</h2>
+
+<p>
+يوفر لكم موقع <strong>Saad Live | سعد لايف</strong> خدمة مشاهدة <strong>بث مباشر مباراة {team1} و{team2}</strong> اليوم بدون تقطيع، بجودات متعددة تناسب جميع سرعات الإنترنت، مع تحديث مستمر للسيرفرات لضمان أفضل تجربة مشاهدة قبل وأثناء اللقاء.
+</p>
+
+<h2>موعد مباراة {team1} و{team2} اليوم</h2>
+
+<p>
+تنطلق مباراة <strong>{team1}</strong> ضد <strong>{team2}</strong> اليوم في تمام الساعة <strong>{time}</strong> بتوقيت الرياض، وذلك ضمن منافسات بطولة <strong>{league}</strong>، في مواجهة قوية ينتظرها عشاق كرة القدم من مختلف أنحاء العالم.
+</p>
+
+<h2>القنوات الناقلة لمباراة {team1} و{team2}</h2>
+
+<p>
+تُنقل المباراة مباشرة عبر قناة <strong>{channel}</strong>، ويصاحب اللقاء بالتعليق الصوتي المميز المعلق <strong>{commentator}</strong>، مع تغطية كاملة لأحداث المباراة لحظة بلحظة.
+</p>
+
+<h2>بث مباشر {team1} ضد {team2} بدون تقطيع</h2>
+
+<p>
+استمتع الآن بمشاهدة مباراة <strong>{team1}</strong> و<strong>{team2}</strong> بث مباشر بجودة عالية HD وFull HD، مع إمكانية اختيار أكثر من سيرفر بث لضمان مشاهدة مستقرة بدون انقطاع، سواء من الهاتف المحمول أو الكمبيوتر أو الجهاز اللوحي.
+</p>
+
+<h2>تابع جميع مباريات اليوم عبر Saad Live</h2>
+
+<p>
+يقدم <strong>Saad Live | سعد لايف</strong> تغطية يومية لجميع مباريات الدوريات العالمية والعربية، بما في ذلك دوري أبطال أوروبا، الدوري الإنجليزي، الدوري الإسباني، الدوري الإيطالي، الدوري الفرنسي، دوري روشن السعودي، دوري أبطال آسيا، وكأس العالم، مع تحديث النتائج ومواعيد المباريات والقنوات الناقلة بشكل مستمر.
+</p>
+
+</div>
+<iframe 
+  src="https://callcio-live.blogspot.com/2025/08/blog-post.html"
+  width="100%"
+  height="500"
+  frameborder="0"
+  allowfullscreen
+  allow="autoplay; fullscreen"
+  sandbox="allow-scripts allow-same-origin allow-fullscreen">
+</iframe>
+'''
+    
+    return f"""<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>مشاهدة مباراة {team1} و {team2} بث مباشر | {league}</title>
+<meta name="description" content="شاهد مباراة {team1} و {team2} بث مباشر - {league}">
+<meta name="keywords" content="{team1},{team2},بث مباشر,{league}">
+<meta name="robots" content="index,follow">
+<meta property="og:title" content="مباراة {team1} ضد {team2}">
+<meta property="og:image" content="{logo1}">
+<script type="application/ld+json">{ld_json}</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8DDNLS5L35"></script>
+<script>function gtag(){{dataLayer.push(arguments);}}gtag('js',new Date());gtag('config','G-8DDNLS5L35');</script>
+{FULL_MATCH_CSS}
+</head>
+
+<body>
+{ADSTERRA_ADS['top_banner']}
+<div class="coMatch"><div class="backMatch"><div class="baMatch">
+<div class="colmd"><div class="teamlogo" style="background-image:url('{logo1}')"></div><div class="teamname">{team1}</div></div>
+<div class="colmd ce"><div class="matchvs">VS</div></div>
+<div class="colmd"><div class="teamlogo" style="background-image:url('{logo2}')"></div><div class="teamname">{team2}</div></div>
+</div></div>
+<div class="tabs-container">
+<button class="tab-button" onclick="changeLineup('{team1}')">{team1}</button>
+<button class="tab-button" onclick="changeLineup('{team2 or 'الفريق الثاني'}')">{team2 or 'الفريق الثاني'}</button>
+</div>
+<div class="field-container">
+<button id="toggleSubsBtn" class="toggle-subs-btn">إظهار الاحتياط والغائبين</button>
+<div class="field" id="field"></div>
+<div id="subsAbsentsOverlay" class="subs-absents-overlay"><button id="closeSubsBtn">إغلاق</button></div>
+</div>
+{lineup_js}
+{ADSTERRA_ADS['middle_square']}
+{seo_content}
+{ADSTERRA_ADS['bottom_mobile']}
+<div class="TableMatch"><h3>معلومات المباراة</h3><table>
+<tr><th>الفريق الأول</th><td>{team1}</td></tr>
+<tr><th>الفريق الثاني</th><td>{team2}</td></tr>
+<tr><th>التاريخ</th><td>{date}</td></tr>
+<tr><th>الوقت</th><td>{time}</td></tr>
+<tr><th>القناة</th><td>{channel}</td></tr>
+<tr><th>المعلق</th><td>{commentator}</td></tr>
+</table></div>
+</body></html>"""
+
+# ==========================================
+# 8. قالب صفحة موشريل
+# ==========================================
+def generate_mochril_page(match):
+    """توليد صفحة موشريل (البث المباشر)"""
+    team1 = match['team1']
+    team2 = match['team2']
+    urls = match['urls']
+    title = f"{team1} × {team2}" if team2 else team1
+    
+    quality_buttons_html = ""
+    lang_labels = ["EN", "FR", "GR", "AR"]
+    for i, url in enumerate(urls):
+        label = lang_labels[i] if i < len(lang_labels) else f'HD{i+1}'
+        active = 'active' if i == 0 else ''
+        quality_buttons_html += f'<button class="quality-btn {active}" data-src="{url}">{label}</button>\n'
+    
+    quality_buttons_html = f'<ul class="quality-menu">{quality_buttons_html}</ul>'
+    first_url = urls[0] if urls else ""
+    
+    return f"""<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>{title} - بث مباشر</title>
+<link rel="icon" type="image/x-icon" href="https://com.coffe.world/wp-content/uploads/2025/07/cropped-7.png" />
+<style>
+* {{ margin: 0; padding: 0; box-sizing: border-box; }}
+html, body {{ width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Segoe UI', Arial, sans-serif; direction: rtl; }}
+.quality-menu {{ display: flex; flex-wrap: wrap; list-style: none; padding: 1px 1px; justify-content: center; gap: 10px; position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; background: rgba(15, 15, 25, 0.85); border-bottom: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(8px); }}
+.quality-btn {{ cursor: pointer; padding: 4px 8px; background: linear-gradient(135deg, #2a3356, #1e2642); color: #fff; font-size: 13px; font-weight: 500; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; }}
+.quality-btn:hover, .quality-btn.active {{ background: linear-gradient(135deg, #b91c1c, #7f1d1d); }}
+.video-container {{ position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; display: flex; justify-content: center; align-items: center; }}
+iframe {{ width: 100%; height: 100%; border: none; }}
+.loading-overlay {{ position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; color: #fff; font-size: 16px; gap: 10px; }}
+.spinner {{ width: 50px; height: 50px; border: 4px solid #333; border-top: 4px solid #b91c1c; border-radius: 50%; animation: spin 1s linear infinite; }}
+@keyframes spin {{ 0% {{ transform: rotate(0deg); }} 100% {{ transform: rotate(360deg); }} }}
+.chplayer {{ position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); padding: 14px 40px; font-size: 15px; font-weight: 700; color: #fff; border-radius: 50px; background: linear-gradient(145deg, rgba(0, 119, 255, 0.3), rgba(88, 0, 255, 0.3)); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(18px); box-shadow: 0 8px 25px rgba(0,0,0,0.5); z-index: 9999; }}
+</style>
+</head>
+<body>
+{quality_buttons_html}
+<div class="video-container">
+    <div class="loading-overlay" id="loading">
+        <div class="spinner"></div>
+        <p>جاري تحميل البث... {team1} × {team2}</p>
+    </div>
+    <iframe id="player-frame" src="{first_url}" allowfullscreen sandbox="allow-same-origin allow-scripts" frameborder="0" scrolling="no" onload="hideLoading()"></iframe>
+</div>
+<div class="chplayer">🔴 بث مباشر: saad-live</div>
+<script>
+function hideLoading(){{
+    const loader = document.getElementById('loading');
+    loader.style.opacity = 0;
+    setTimeout(() => {{ loader.style.display = 'none'; }}, 600);
+}}
+document.querySelectorAll('.quality-btn').forEach(btn => {{
+    btn.addEventListener('click', function() {{
+        document.querySelectorAll('.quality-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        const loader = document.getElementById('loading');
+        loader.style.display = 'flex';
+        loader.style.opacity = 1;
+        document.getElementById('player-frame').src = this.getAttribute('data-src');
+    }});
+}});
+</script>
+</body>
+</html>"""
+
+# ==========================================
+# 9. ⭐ Blogger API - لنشر Pages (صفحات) ⭐
+# ==========================================
+class BloggerManager:
+    """مدير Blogger API لنشر صفحات (Pages)"""
+    
+    def __init__(self):
+        self.service = None
+        self.last_error = None
+        self.debug_log = []
+    
+    def log(self, message, level="INFO"):
+        """تسجيل رسالة في السجل"""
+        timestamp = datetime.now().strftime('%H:%M:%S')
+        log_entry = f"[{timestamp}] [{level}] {message}"
+        self.debug_log.append(log_entry)
+        if len(self.debug_log) > 100:
+            self.debug_log.pop(0)
+        print(log_entry)
+    
+    def check_prerequisites(self):
+        """فحص المتطلبات الأساسية"""
+        self.log("🔍 فحص المتطلبات...")
+        issues = []
+        
+        cred_file = BLOGGER_CONFIG['credentials_file']
+        if not os.path.exists(cred_file):
+            issues.append(f"❌ ملف {cred_file} غير موجود!")
+            self.log(f"❌ الملف مفقود: {cred_file}", "ERROR")
+        else:
+            try:
+                with open(cred_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    if 'installed' not in data and 'web' not in data:
+                        issues.append("❌ ملف credentials.json غير صالح!")
+                    else:
+                        self.log(f"✅ ملف {cred_file} موجود وصالح")
+            except Exception as e:
+                issues.append(f"❌ خطأ في قراءة credentials.json: {e}")
+        
+        required_libs = ['googleapiclient', 'google_auth_oauthlib', 'google.auth']
+        for lib in required_libs:
+            try:
+                __import__(lib.split('.')[0])
+                self.log(f"✅ المكتبة {lib} مثبتة")
+            except ImportError:
+                issues.append(f"❌ المكتبة {lib} غير مثبتة!")
+        
+        blog_id = BLOGGER_CONFIG['blog_id']
+        if not blog_id or len(blog_id) < 10:
+            issues.append("❌ Blog ID غير صحيح!")
+        else:
+            self.log(f"✅ Blog ID: {blog_id}")
+        
+        return issues
+    
+    def authenticate(self, force_new=False):
+        """المصادقة مع Blogger API"""
+        try:
+            from googleapiclient.discovery import build
+            from google_auth_oauthlib.flow import InstalledAppFlow
+            from google.auth.transport.requests import Request
+            from google.oauth2.credentials import Credentials
+            
+            self.log("🔐 بدء المصادقة...")
+            
+            SCOPES = ['https://www.googleapis.com/auth/blogger']
+            creds = None
+            
+            if force_new and os.path.exists(BLOGGER_CONFIG['token_file']):
+                os.remove(BLOGGER_CONFIG['token_file'])
+                self.log("🗑️ تم حذف token القديم")
+            
+            token_file = BLOGGER_CONFIG['token_file']
+            if os.path.exists(token_file):
+                try:
+                    self.log(f"📂 جاري تحميل token من: {token_file}")
+                    creds = Credentials.from_authorized_user_file(token_file, SCOPES)
+                    self.log("✅ تم تحميل token بنجاح")
+                except Exception as e:
+                    self.log(f"⚠️ خطأ في تحميل token: {e}", "WARNING")
+                    creds = None
+            
+            if creds and creds.valid:
+                self.log("✅ Token صالح")
+            elif creds and creds.expired and creds.refresh_token:
+                self.log("🔄 تجديد token...")
+                try:
+                    creds.refresh(Request())
+                    self.log("✅ تم تجديد token بنجاح")
+                    with open(token_file, 'w') as token:
+                        token.write(creds.to_json())
+                    self.log("💾 تم حفظ token المجدد")
+                except Exception as e:
+                    self.log(f"❌ فشل تجديد token: {e}", "ERROR")
+                    creds = None
+            
+            if not creds:
+                self.log("🌐 فتح المتصفح للمصادقة...")
+                if not os.path.exists(BLOGGER_CONFIG['credentials_file']):
+                    raise FileNotFoundError(f"ملف {BLOGGER_CONFIG['credentials_file']} غير موجود!")
+                
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    BLOGGER_CONFIG['credentials_file'], 
+                    SCOPES
+                )
+                creds = flow.run_local_server(port=8080)
+                self.log("✅ تمت المصادقة بنجاح")
+                
+                with open(token_file, 'w') as token:
+                    token.write(creds.to_json())
+                self.log(f"💾 تم حفظ token في: {token_file}")
+            
+            self.service = build('blogger', 'v3', credentials=creds)
+            self.log("✅ تم بناء Blogger Service بنجاح")
+            return True
+            
+        except Exception as e:
+            self.last_error = str(e)
+            self.log(f"❌ خطأ في المصادقة: {e}", "ERROR")
+            self.log(traceback.format_exc(), "DEBUG")
+            return False
+    
+    def test_connection(self):
+        """اختبار الاتصال بالمدونة"""
+        if not self.service:
+            return False, "الخدمة غير مهيأة"
+        
+        try:
+            blog_id = BLOGGER_CONFIG['blog_id']
+            self.log(f"🔍 اختبار الاتصال بالمدونة: {blog_id}")
+            
+            blog = self.service.blogs().get(blogId=blog_id).execute()
+            
+            blog_name = blog.get('name', 'غير معروف')
+            blog_url = blog.get('url', 'غير معروف')
+            pages_count = blog.get('pages', {}).get('totalItems', 0)
+            
+            self.log(f"✅ المدونة: {blog_name}")
+            self.log(f"🌐 الرابط: {blog_url}")
+            self.log(f"📄 عدد الصفحات: {pages_count}")
+            
+            return True, {
+                'name': blog_name,
+                'url': blog_url,
+                'pages': pages_count
+            }
+            
+        except Exception as e:
+            self.last_error = str(e)
+            self.log(f"❌ فشل الاتصال: {e}", "ERROR")
+            return False, str(e)
+    
+    def publish_page(self, title, content):
+        """نشر صفحة (Page) على Blogger"""
+        if not self.service:
+            return None, "الخدمة غير مهيأة"
+        
+        try:
+            blog_id = BLOGGER_CONFIG['blog_id']
+            self.log(f"📤 جاري نشر صفحة: {title}")
+            
+            page_body = {
+                'title': title,
+                'content': content
+            }
+            
+            page = self.service.pages().insert(
+                blogId=blog_id, 
+                body=page_body
+            ).execute()
+            
+            url = page.get('url')
+            page_id = page.get('id')
+            
+            self.log(f"✅ تم نشر الصفحة بنجاح!")
+            self.log(f"🆔 Page ID: {page_id}")
+            self.log(f"🌐 URL: {url}")
+            
+            return url, None
+            
+        except Exception as e:
+            self.last_error = str(e)
+            self.log(f"❌ فشل نشر الصفحة: {e}", "ERROR")
+            self.log(traceback.format_exc(), "DEBUG")
+            return None, str(e)
+    
+    def get_debug_info(self):
+        """الحصول على معلومات التصحيح"""
+        return "\n".join(self.debug_log[-50:])
+
+blogger_manager = BloggerManager()
+
+# ==========================================
+# 10. الواجهة الرسومية (مع ميزة الاختيار المتعدد)
+# ==========================================
+class SaadLiveApp(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("🎯 Saad Live - لوحة التحكم الاحترافية")
+        self.geometry("1400x900")
+        self.minsize(1200, 800)
+        self.configure(bg="#0F0F13")
+        
+        self.matches = []
+        self.selected_match = None
+        self.generated_pages = []
+        
+        self.setup_theme()
+        self.create_main_interface()
+        
+    def setup_theme(self):
+        style = ttk.Style(self)
+        style.theme_use('clam')
+        
+        self.bg_color = "#0F0F13"
+        self.card_bg = "#1A1A24"
+        self.fg_color = "#E2E8F0"
+        self.accent_color = "#b91c1c"
+        self.accent_hover = "#dc2626"
+        self.secondary_text = "#94A3B8"
+        
+        self.configure(bg=self.bg_color)
+        
+        style.configure(".", background=self.bg_color, foreground=self.fg_color, fieldbackground=self.card_bg, borderwidth=0, focusthickness=0, focuscolor=self.bg_color)
+        style.configure("TFrame", background=self.bg_color)
+        
+        style.configure("TLabel", background=self.bg_color, foreground=self.fg_color, font=("Segoe UI", 10))
+        style.configure("Title.TLabel", background=self.bg_color, foreground=self.fg_color, font=("Segoe UI", 18, "bold"))
+        style.configure("Accent.TLabel", background=self.bg_color, foreground=self.accent_color, font=("Segoe UI", 11, "bold"))
+        style.configure("Secondary.TLabel", background=self.bg_color, foreground=self.secondary_text, font=("Segoe UI", 10, "italic"))
+        
+        style.configure("TButton", background=self.card_bg, foreground=self.fg_color, font=("Segoe UI", 10, "bold"), padding=(15, 8), borderwidth=0, relief="flat")
+        style.map("TButton", 
+                  background=[("active", self.accent_color), ("pressed", self.accent_color)], 
+                  foreground=[("active", "#FFFFFF"), ("pressed", "#FFFFFF")])
+                  
+        style.configure("Accent.TButton", background=self.accent_color, foreground="#FFFFFF", font=("Segoe UI", 10, "bold"), padding=(15, 8))
+        style.map("Accent.TButton", background=[("active", self.accent_hover), ("pressed", self.accent_hover)])
+        
+        style.configure("Success.TButton", background="#10B981", foreground="#FFFFFF", font=("Segoe UI", 10, "bold"), padding=(15, 8))
+        style.map("Success.TButton", background=[("active", "#059669"), ("pressed", "#059669")])
+        
+        style.configure("TEntry", fieldbackground=self.card_bg, foreground=self.fg_color, insertcolor=self.fg_color, padding=10, borderwidth=1, relief="solid", bordercolor="#333340")
+        style.map("TEntry", fieldbackground=[("focus", "#252532")], bordercolor=[("focus", self.accent_color)])
+        
+        style.configure("TLabelframe", background=self.bg_color, foreground=self.accent_color)
+        style.configure("TLabelframe.Label", background=self.bg_color, foreground=self.accent_color, font=("Segoe UI", 11, "bold"))
+
+    def create_main_interface(self):
+        main_container = ttk.Frame(self)
+        main_container.pack(fill=tk.BOTH, expand=True, padx=25, pady=25)
+        
+        header_frame = ttk.Frame(main_container)
+        header_frame.pack(fill=tk.X, pady=(0, 25))
+        
+        title_frame = ttk.Frame(header_frame)
+        title_frame.pack(side=tk.LEFT)
+        
+        ttk.Label(title_frame, text="🎯 Saad Live", style="Title.TLabel").pack(anchor=tk.W)
+        ttk.Label(title_frame, text="مولد صفحات المباريات الاحترافي - اختيار متعدد", style="Accent.TLabel").pack(anchor=tk.W, pady=(5, 0))
+        
+        self.status_label = ttk.Label(header_frame, text="✅ جاهز", foreground="#10B981", background=self.bg_color, font=("Segoe UI", 11, "bold"))
+        self.status_label.pack(side=tk.RIGHT, padx=10)
+        
+        content_frame = ttk.Frame(main_container)
+        content_frame.pack(fill=tk.BOTH, expand=True)
+        content_frame.columnconfigure(0, weight=2)
+        content_frame.columnconfigure(1, weight=3)
+        content_frame.rowconfigure(0, weight=1)
+        
+        left_col = ttk.Frame(content_frame)
+        left_col.grid(row=0, column=0, sticky="nsew", padx=(0, 15))
+        
+        input_card = ttk.LabelFrame(left_col, text=" 📝  قائمة المباريات ", padding=15)
+        input_card.pack(fill=tk.X, pady=(0, 15))
+        
+        self.matches_input = scrolledtext.ScrolledText(
+            input_card, height=6, font=("Consolas", 11), 
+            bg=self.card_bg, fg=self.fg_color, insertbackground=self.fg_color, 
+            relief="flat", highlightthickness=2, highlightbackground="#2A2A35",
+            highlightcolor=self.accent_color
+        )
+        self.matches_input.pack(fill=tk.X, pady=5)
+        self.matches_input.insert(tk.END, """19:30 Benfica x Flamengo | https://v4.sportsonlinne.click/channels/pt/eleven3.php
+20:00 Rugby: Argentina x Wales | https://v4.sportsonlinne.click/channels/pt/sporttv2.php
+22:00 Norway x England | https://v4.sportsonlinne.click/channels/hd/hd1.php""")
+        
+        list_card = ttk.LabelFrame(left_col, text=" 📋  المباريات (Ctrl/Shift للاختيار المتعدد) ", padding=15)
+        list_card.pack(fill=tk.BOTH, expand=True)
+        
+        self.matches_listbox = tk.Listbox(
+            list_card, font=("Segoe UI", 11), 
+            bg=self.card_bg, fg=self.fg_color, 
+            selectbackground=self.accent_color, selectforeground="#FFF", 
+            relief="flat", highlightthickness=2, highlightbackground="#2A2A35",
+            highlightcolor=self.accent_color, activestyle="none",
+            borderwidth=0,
+            selectmode=tk.EXTENDED
+        )
+        self.matches_listbox.pack(fill=tk.BOTH, expand=True, pady=5)
+        self.matches_listbox.bind('<<ListboxSelect>>', self.on_match_select)
+        
+        select_btns = ttk.Frame(list_card)
+        select_btns.pack(fill=tk.X, pady=(5, 0))
+        
+        ttk.Button(select_btns, text="✅ تحديد الكل", command=self.select_all_matches).pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Button(select_btns, text="❌ إلغاء التحديد", command=self.deselect_all_matches).pack(side=tk.LEFT, padx=(0, 5))
+        
+        self.match_info_label = ttk.Label(list_card, text="🎯 اختر مباراة (أو عدة مباريات) من القائمة", style="Secondary.TLabel")
+        self.match_info_label.pack(fill=tk.X, pady=(10, 0))
+        
+        right_col = ttk.Frame(content_frame)
+        right_col.grid(row=0, column=1, sticky="nsew", padx=(15, 0))
+        
+        info_card = ttk.LabelFrame(right_col, text=" ⚽  تفاصيل المباراة ", padding=15)
+        info_card.pack(fill=tk.X, pady=(0, 15))
+        
+        info_grid = ttk.Frame(info_card)
+        info_grid.pack(fill=tk.X)
+        
+        row1 = ttk.Frame(info_grid)
+        row1.pack(fill=tk.X, pady=5)
+        ttk.Label(row1, text="🏆 الدوري:", width=12, anchor=tk.W).pack(side=tk.LEFT, padx=(0, 10))
+        self.league_entry = ttk.Entry(row1, width=30)
+        self.league_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 20))
+        self.league_entry.insert(0, "دوري كرة القدم")
+        
+        ttk.Label(row1, text="📺 القناة:", width=12, anchor=tk.W).pack(side=tk.LEFT, padx=(0, 10))
+        self.channel_entry = ttk.Entry(row1, width=30)
+        self.channel_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.channel_entry.insert(0, "beIN SPORTS MAX 1")
+        
+        row2 = ttk.Frame(info_grid)
+        row2.pack(fill=tk.X, pady=5)
+        ttk.Label(row2, text="🎙️ المعلق:", width=12, anchor=tk.W).pack(side=tk.LEFT, padx=(0, 10))
+        self.commentator_entry = ttk.Entry(row2, width=30)
+        self.commentator_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 20))
+        self.commentator_entry.insert(0, "غير معروف")
+        
+        ttk.Label(row2, text="🏟️ الملعب:", width=12, anchor=tk.W).pack(side=tk.LEFT, padx=(0, 10))
+        self.stadium_entry = ttk.Entry(row2, width=30)
+        self.stadium_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.stadium_entry.insert(0, "ملعب غير معروف")
+        
+        action_card = ttk.LabelFrame(right_col, text=" ⚡  أدوات التوليد والنشر ", padding=15)
+        action_card.pack(fill=tk.X, pady=(0, 15))
+        
+        analysis_frame = ttk.Frame(action_card)
+        analysis_frame.pack(fill=tk.X, pady=(0, 15))
+        ttk.Label(analysis_frame, text="🔍 تحليل البيانات", font=("Segoe UI", 10, "bold"), foreground=self.accent_color).pack(anchor=tk.W, pady=(0, 5))
+        
+        btn_row1 = ttk.Frame(analysis_frame)
+        btn_row1.pack(fill=tk.X)
+        ttk.Button(btn_row1, text="🔍 تحليل المباريات", command=self.analyze_matches, style="Accent.TButton").pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(btn_row1, text="🗑️ مسح الكل", command=self.clear_all).pack(side=tk.LEFT)
+        
+        api_frame = ttk.Frame(action_card)
+        api_frame.pack(fill=tk.X, pady=(0, 15))
+        ttk.Label(api_frame, text="🔐 إدارة Blogger", font=("Segoe UI", 10, "bold"), foreground=self.accent_color).pack(anchor=tk.W, pady=(0, 5))
+        
+        btn_row2 = ttk.Frame(api_frame)
+        btn_row2.pack(fill=tk.X)
+        ttk.Button(btn_row2, text="🔐 المصادقة", command=self.authenticate_blogger).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(btn_row2, text="🧪 اختبار الاتصال", command=self.test_blogger_connection).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(btn_row2, text="🔄 إعادة المصادقة", command=self.force_reauth).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(btn_row2, text="🐛 سجل التصحيح", command=self.show_debug_log).pack(side=tk.LEFT)
+        
+        gen_frame = ttk.Frame(action_card)
+        gen_frame.pack(fill=tk.X, pady=(0, 15))
+        ttk.Label(gen_frame, text="⚡ توليد للمباراة المحددة", font=("Segoe UI", 10, "bold"), foreground=self.accent_color).pack(anchor=tk.W, pady=(0, 5))
+        
+        btn_row3 = ttk.Frame(gen_frame)
+        btn_row3.pack(fill=tk.X)
+        ttk.Button(btn_row3, text="📋 بطاقة Blogger", command=self.generate_card, style="Accent.TButton").pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(btn_row3, text="🌐 الصفحة الكاملة", command=self.generate_page, style="Accent.TButton").pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(btn_row3, text="🔴 صفحة موشريل", command=self.generate_mochril, style="Accent.TButton").pack(side=tk.LEFT)
+        
+        batch_frame = ttk.Frame(action_card)
+        batch_frame.pack(fill=tk.X, pady=(0, 15))
+        ttk.Label(batch_frame, text="🚀 توليد جماعي (للمباريات المختارة)", font=("Segoe UI", 10, "bold"), foreground="#10B981").pack(anchor=tk.W, pady=(0, 5))
+        
+        btn_row_batch = ttk.Frame(batch_frame)
+        btn_row_batch.pack(fill=tk.X)
+        ttk.Button(btn_row_batch, text="📑 توليد كل البطاقات", command=self.generate_all_cards, style="Success.TButton").pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(btn_row_batch, text="🌐 توليد كل الصفحات", command=self.generate_all_pages, style="Success.TButton").pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(btn_row_batch, text="🔴 توليد كل موشريل", command=self.generate_all_mochrils, style="Success.TButton").pack(side=tk.LEFT)
+        
+        out_frame = ttk.Frame(action_card)
+        out_frame.pack(fill=tk.X)
+        ttk.Label(out_frame, text="💾 حفظ ونشر", font=("Segoe UI", 10, "bold"), foreground=self.accent_color).pack(anchor=tk.W, pady=(0, 5))
+        
+        btn_row4 = ttk.Frame(out_frame)
+        btn_row4.pack(fill=tk.X)
+        ttk.Button(btn_row4, text="📋 نسخ الكود", command=self.copy_code).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(btn_row4, text="💾 حفظ HTML", command=self.save_html).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(btn_row4, text="📄 نشر كصفحة", command=self.publish_current, style="Accent.TButton").pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(btn_row4, text="🚀 نشر الكل", command=self.publish_all_selected, style="Success.TButton").pack(side=tk.LEFT)
+        
+        output_card = ttk.LabelFrame(right_col, text=" 💻  الكود المولد ", padding=15)
+        output_card.pack(fill=tk.BOTH, expand=True)
+        
+        self.output_text = scrolledtext.ScrolledText(
+            output_card, font=("Consolas", 10), wrap=tk.WORD, 
+            bg=self.card_bg, fg=self.fg_color, insertbackground=self.fg_color, 
+            relief="flat", highlightthickness=2, highlightbackground="#2A2A35",
+            highlightcolor=self.accent_color
+        )
+        self.output_text.pack(fill=tk.BOTH, expand=True, pady=5)
+
+    def get_extra_info(self):
+        return {
+            'league': self.league_entry.get().strip() or 'دوري كرة القدم',
+            'channel': self.channel_entry.get().strip() or 'قناة رياضية',
+            'commentator': self.commentator_entry.get().strip() or 'غير معروف',
+            'stadium': self.stadium_entry.get().strip() or 'ملعب غير معروف'
+        }
+    
+    def analyze_matches(self):
+        text = self.matches_input.get("1.0", tk.END)
+        self.matches = parse_matches(text)
+        
+        if not self.matches:
+            messagebox.showwarning("تنبيه", "❌ لم يتم العثور على مباريات صحيحة!")
+            return
+        
+        self.matches_listbox.delete(0, tk.END)
+        for i, match in enumerate(self.matches):
+            title = f"{match['team1']} × {match['team2']}" if match['team2'] else match['team1']
+            urls_count = len(match['urls'])
+            display_text = f"⏰ {match['time']} | {title} | 🔗 {urls_count} رابط"
+            self.matches_listbox.insert(tk.END, display_text)
+        
+        self.status_label.config(text=f"✅ تم تحليل {len(self.matches)} مباراة", foreground="#10B981")
+        self.selected_match = None
+        self.generated_pages = []
+        self.match_info_label.config(text="🎯 اختر مباراة (أو عدة مباريات) من القائمة")
+    
+    def select_all_matches(self):
+        if not self.matches:
+            messagebox.showwarning("تنبيه", "⚠️ لا توجد مباريات!")
+            return
+        self.matches_listbox.select_set(0, tk.END)
+        count = len(self.matches)
+        self.match_info_label.config(text=f"✅ تم تحديد {count} مباراة")
+        self.status_label.config(text=f"✅ تم تحديد {count} مباراة", foreground="#10B981")
+    
+    def deselect_all_matches(self):
+        self.matches_listbox.select_clear(0, tk.END)
+        self.match_info_label.config(text="🎯 اختر مباراة (أو عدة مباريات) من القائمة")
+        self.status_label.config(text="🗑️ تم إلغاء التحديد", foreground="#F59E0B")
+    
+    def on_match_select(self, event):
+        selection = self.matches_listbox.curselection()
+        if not selection:
+            return
+        
+        if len(selection) == 1:
+            index = selection[0]
+            self.selected_match = self.matches[index]
+            match = self.selected_match
+            title = f"{match['team1']} × {match['team2']}" if match['team2'] else match['team1']
+            info = f"✅ {title} | ⏰ {match['time']} | 🔗 {len(match['urls'])} رابط"
+            self.match_info_label.config(text=info)
+            self.status_label.config(text=f"✅ تم اختيار: {title}", foreground="#10B981")
+        else:
+            self.selected_match = self.matches[selection[0]]
+            info = f"🎯 تم تحديد {len(selection)} مباراة (Ctrl/Shift للاختيار)"
+            self.match_info_label.config(text=info)
+            self.status_label.config(text=f"🎯 تم تحديد {len(selection)} مباراة", foreground="#10B981")
+    
+    def get_selected_matches(self):
+        selection = self.matches_listbox.curselection()
+        if not selection:
+            return []
+        return [self.matches[i] for i in selection]
+    
+    def check_selection(self):
+        if not self.selected_match:
+            messagebox.showwarning("تنبيه", "⚠️ الرجاء اختيار مباراة أولاً!")
+            return False
+        return True
+    
+    def generate_card(self):
+        if not self.check_selection(): return
+        html = generate_match_card(self.selected_match, self.get_extra_info())
+        self.output_text.delete("1.0", tk.END)
+        self.output_text.insert(tk.END, html)
+        self.status_label.config(text="📋 تم توليد بطاقة Blogger", foreground="#10B981")
+    
+    def generate_page(self):
+        if not self.check_selection(): return
+        html = generate_full_page(self.selected_match, self.get_extra_info())
+        self.output_text.delete("1.0", tk.END)
+        self.output_text.insert(tk.END, html)
+        self.status_label.config(text="🌐 تم توليد صفحة كاملة", foreground="#10B981")
+    
+    def generate_mochril(self):
+        if not self.check_selection(): return
+        html = generate_mochril_page(self.selected_match)
+        self.output_text.delete("1.0", tk.END)
+        self.output_text.insert(tk.END, html)
+        self.status_label.config(text="🔴 تم توليد صفحة موشريل", foreground="#10B981")
+    
+    # ⭐⭐⭐ MODIFIED: توليد جميع البطاقات في كود واحد متصل ونظيف
+    def generate_all_cards(self):
+        """توليد جميع البطاقات في كود HTML واحد متصل (جميع المباريات كجزء من نفس الصفحة)"""
+        selected = self.get_selected_matches()
+        if not selected:
+            messagebox.showwarning("تنبيه", "⚠️ الرجاء اختيار مباراة واحدة على الأقل!")
+            return
+        
+        self.output_text.delete("1.0", tk.END)
+        extra = self.get_extra_info()
+        
+        # ⭐ كود واحد فيه جميع البطاقات متصلة مباشرة (مثل 3 بطاقات كجزء من نفس الصفحة)
+        all_cards_html = ""
+        
+        for match in selected:
+            # إضافة البطاقة مباشرة بدون فواصل كبيرة
+            card_html = generate_match_card(match, extra)
+            all_cards_html += card_html + "\n"
+        
+        # إظهار الكود النهائي المتصل
+        self.output_text.insert(tk.END, all_cards_html)
+        
+        # تحديث قائمة الصفحات المولدة
+        self.generated_pages = []
+        for match in selected:
+            title = f"{match['team1']} × {match['team2']}" if match['team2'] else match['team1']
+            self.generated_pages.append({
+                'title': title,
+                'content': generate_match_card(match, extra),
+                'match': match
+            })
+        
+        self.status_label.config(text=f"📑 تم توليد {len(selected)} بطاقة (كود واحد متصل)", foreground="#10B981")
+        messagebox.showinfo("نجاح", f"✅ تم توليد {len(selected)} بطاقة في كود واحد متصل!\n\n💡 جميع البطاقات كجزء من نفس الصفحة")
+    
+    def generate_all_pages(self):
+        selected = self.get_selected_matches()
+        if not selected:
+            messagebox.showwarning("تنبيه", "⚠️ الرجاء اختيار مباراة واحدة على الأقل!")
+            return
+        
+        self.output_text.delete("1.0", tk.END)
+        self.generated_pages = []
+        extra = self.get_extra_info()
+        
+        combined_html = ""
+        
+        for i, match in enumerate(selected, 1):
+            title = f"{match['team1']} × {match['team2']}" if match['team2'] else match['team1']
+            html = generate_full_page(match, extra)
+            combined_html += f"\n\n{'='*80}\n"
+            combined_html += f"<!-- ========== صفحة {i}: {title} ========== -->\n"
+            combined_html += f"{'='*80}\n\n"
+            combined_html += html + "\n"
+            self.generated_pages.append({
+                'title': title,
+                'content': html,
+                'match': match
+            })
+        
+        self.output_text.insert(tk.END, combined_html)
+        self.status_label.config(text=f"🌐 تم توليد {len(selected)} صفحة كاملة", foreground="#10B981")
+        messagebox.showinfo("نجاح", f"✅ تم توليد {len(selected)} صفحة كاملة بنجاح!\n\n💡 يمكنك حفظ كل صفحة في ملف HTML منفصل.")
+    
+    def generate_all_mochrils(self):
+        selected = self.get_selected_matches()
+        if not selected:
+            messagebox.showwarning("تنبيه", "⚠️ الرجاء اختيار مباراة واحدة على الأقل!")
+            return
+        
+        self.output_text.delete("1.0", tk.END)
+        self.generated_pages = []
+        
+        combined_html = ""
+        
+        for i, match in enumerate(selected, 1):
+            title = f"{match['team1']} × {match['team2']}" if match['team2'] else match['team1']
+            html = generate_mochril_page(match)
+            combined_html += f"\n\n{'='*80}\n"
+            combined_html += f"<!-- ========== صفحة موشريل {i}: {title} ========== -->\n"
+            combined_html += f"{'='*80}\n\n"
+            combined_html += html + "\n"
+            self.generated_pages.append({
+                'title': title,
+                'content': html,
+                'match': match
+            })
+        
+        self.output_text.insert(tk.END, combined_html)
+        self.status_label.config(text=f"🔴 تم توليد {len(selected)} صفحة موشريل", foreground="#10B981")
+        messagebox.showinfo("نجاح", f"✅ تم توليد {len(selected)} صفحة موشريل بنجاح!")
+    
+    def copy_code(self):
+        code = self.output_text.get("1.0", tk.END).strip()
+        if not code:
+            messagebox.showwarning("تنبيه", "⚠️ لا يوجد كود!")
+            return
+        self.clipboard_clear()
+        self.clipboard_append(code)
+        self.status_label.config(text="📋 تم النسخ!", foreground="#10B981")
+    
+    def save_html(self):
+        code = self.output_text.get("1.0", tk.END).strip()
+        if not code:
+            messagebox.showwarning("تنبيه", "⚠️ لا يوجد كود!")
+            return
+        
+        filename = filedialog.asksaveasfilename(
+            defaultextension=".html",
+            filetypes=[("HTML files", "*.html"), ("All files", "*.*")]
+        )
+        
+        if filename:
+            with open(filename, 'w', encoding='utf-8') as f:
+                f.write(code)
+            self.status_label.config(text=f"💾 تم الحفظ: {filename}", foreground="#10B981")
+    
+    def authenticate_blogger(self):
+        self.status_label.config(text="🔐 جاري المصادقة...", foreground="#F59E0B")
+        self.update()
+        
+        issues = blogger_manager.check_prerequisites()
+        if issues:
+            error_msg = "⚠️ مشاكل في المتطلبات:\n\n" + "\n".join(issues)
+            error_msg += "\n\nهل تريد المتابعة على أي حال؟"
+            if not messagebox.askyesno("تحذير", error_msg):
+                return
+        
+        success = blogger_manager.authenticate()
+        
+        if success:
+            self.status_label.config(text="✅ تمت المصادقة بنجاح!", foreground="#10B981")
+            messagebox.showinfo("نجاح", "✅ تمت المصادقة مع Blogger بنجاح!")
+        else:
+            self.status_label.config(text="❌ فشلت المصادقة!", foreground="#EF4444")
+            error_detail = blogger_manager.last_error or "خطأ غير معروف"
+            messagebox.showerror("خطأ", f"❌ فشلت المصادقة!\n\nالتفاصيل:\n{error_detail}")
+    
+    def test_blogger_connection(self):
+        if not blogger_manager.service:
+            messagebox.showwarning("تنبيه", "⚠️ يجب المصادقة أولاً!\nاضغط '🔐 المصادقة'")
+            return
+        
+        self.status_label.config(text="🧪 جاري الاختبار...", foreground="#F59E0B")
+        self.update()
+        
+        success, result = blogger_manager.test_connection()
+        
+        if success:
+            info = (
+                f"✅ الاتصال ناجح!\n\n"
+                f"📝 اسم المدونة: {result['name']}\n"
+                f"🌐 الرابط: {result['url']}\n"
+                f"📄 عدد الصفحات: {result['pages']}"
+            )
+            self.status_label.config(text="✅ الاتصال ناجح!", foreground="#10B981")
+            messagebox.showinfo("نجاح", info)
+        else:
+            self.status_label.config(text="❌ فشل الاتصال!", foreground="#EF4444")
+            messagebox.showerror("خطأ", f"❌ فشل الاتصال!\n\nالتفاصيل:\n{result}")
+    
+    def force_reauth(self):
+        if messagebox.askyesno("تأكيد", "⚠️ سيتم حذف token القديم وإعادة المصادقة.\nهل تريد المتابعة؟"):
+            self.authenticate_blogger()
+    
+    def show_debug_log(self):
+        log_window = tk.Toplevel(self)
+        log_window.title("🐛 سجل التصحيح")
+        log_window.geometry("800x600")
+        log_window.configure(bg=self.bg_color)
+        
+        log_text = scrolledtext.ScrolledText(
+            log_window, 
+            bg=self.card_bg, 
+            fg="#00ff00",
+            font=("Consolas", 11),
+            wrap=tk.WORD,
+            relief="flat",
+            highlightthickness=2,
+            highlightbackground="#2A2A35"
+        )
+        log_text.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        
+        log_content = blogger_manager.get_debug_info()
+        log_text.insert(tk.END, log_content or "لا توجد سجلات بعد")
+        log_text.config(state=tk.DISABLED)
+        
+        btn_frame = tk.Frame(log_window, bg=self.bg_color)
+        btn_frame.pack(fill=tk.X, padx=20, pady=(0, 20))
+        
+        def copy_log():
+            log_window.clipboard_clear()
+            log_window.clipboard_append(log_content)
+            messagebox.showinfo("نجاح", "تم نسخ السجل!")
+        
+        def save_log():
+            filename = filedialog.asksaveasfilename(
+                defaultextension=".log",
+                filetypes=[("Log files", "*.log"), ("All files", "*.*")]
+            )
+            if filename:
+                with open(filename, 'w', encoding='utf-8') as f:
+                    f.write(log_content)
+                messagebox.showinfo("نجاح", f"تم الحفظ: {filename}")
+        
+        tk.Button(btn_frame, text="📋 نسخ السجل", command=copy_log, bg=self.accent_color, fg="white", activebackground=self.accent_hover, activeforeground="white", relief="flat", font=("Segoe UI", 10, "bold"), padx=15, pady=8).pack(side=tk.LEFT, padx=5)
+        tk.Button(btn_frame, text="💾 حفظ السجل", command=save_log, bg=self.card_bg, fg="white", activebackground="#333", activeforeground="white", relief="flat", font=("Segoe UI", 10, "bold"), padx=15, pady=8).pack(side=tk.LEFT, padx=5)
+        tk.Button(btn_frame, text="❌ إغلاق", command=log_window.destroy, bg="#333", fg="white", activebackground="#444", activeforeground="white", relief="flat", font=("Segoe UI", 10, "bold"), padx=15, pady=8).pack(side=tk.RIGHT, padx=5)
+    
+    def publish_current(self):
+        """نشر الكود كصفحة (Page) على Blogger"""
+        code = self.output_text.get("1.0", tk.END).strip()
+        if not code:
+            messagebox.showwarning("تنبيه", "⚠️ لا يوجد كود!")
+            return
+        
+        if not self.selected_match:
+            messagebox.showwarning("تنبيه", "⚠️ اختر مباراة أولاً!")
+            return
+        
+        if not blogger_manager.service:
+            messagebox.showwarning("تنبيه", "⚠️ يجب المصادقة أولاً!\nاضغط '🔐 المصادقة'")
+            return
+        
+        title = f"{self.selected_match['team1']} × {self.selected_match['team2']}" if self.selected_match['team2'] else self.selected_match['team1']
+        
+        self.status_label.config(text="⏳ جاري نشر الصفحة...", foreground="#F59E0B")
+        self.update()
+        
+        def do_publish():
+            url, error = blogger_manager.publish_page(title, code)
+            
+            if url:
+                self.after(0, lambda: self.status_label.config(text="✅ تم نشر الصفحة!", foreground="#10B981"))
+                self.after(0, lambda: messagebox.showinfo("نجاح", f"✅ تم نشر الصفحة بنجاح!\n\nالرابط:\n{url}"))
+            else:
+                self.after(0, lambda: self.status_label.config(text="❌ فشل نشر الصفحة!", foreground="#EF4444"))
+                self.after(0, lambda: messagebox.showerror("خطأ", f"❌ فشل نشر الصفحة!\n\nالتفاصيل:\n{error}\n\n💡 اضغط '🐛 سجل التصحيح' لمزيد من التفاصيل"))
+        
+        threading.Thread(target=do_publish, daemon=True).start()
+    
+    def publish_all_selected(self):
+        """نشر كل مباراة كصفحة مستقلة على Blogger"""
+        selected = self.get_selected_matches()
+        
+        if not selected:
+            messagebox.showwarning("تنبيه", "⚠️ الرجاء اختيار مباراة واحدة على الأقل!")
+            return
+        
+        if not blogger_manager.service:
+            messagebox.showwarning("تنبيه", "⚠️ يجب المصادقة أولاً!\nاضغط '🔐 المصادقة'")
+            return
+        
+        confirm = messagebox.askyesno(
+            "تأكيد النشر الجماعي",
+            f"سيتم نشر {len(selected)} مباراة كصفحات مستقلة على Blogger.\n\n"
+            "كل مباراة ستكون صفحة منفصلة.\n\n"
+            "هل تريد المتابعة؟"
+        )
+        
+        if not confirm:
+            return
+        
+        self.status_label.config(text=f"⏳ جاري نشر {len(selected)} مباراة...", foreground="#F59E0B")
+        self.update()
+        
+        def do_publish_all():
+            extra = self.get_extra_info()
+            results = []
+            
+            for i, match in enumerate(selected, 1):
+                title = f"{match['team1']} × {match['team2']}" if match['team2'] else match['team1']
+                html = generate_full_page(match, extra)
+                
+                self.after(0, lambda t=title, n=i: self.status_label.config(
+                    text=f"⏳ جاري نشر المباراة {n}/{len(selected)}: {t}", 
+                    foreground="#F59E0B"
+                ))
+                
+                url, error = blogger_manager.publish_page(title, html)
+                results.append({
+                    'title': title,
+                    'url': url,
+                    'error': error
+                })
+                
+                import time
+                time.sleep(1)
+            
+            success_count = sum(1 for r in results if r['url'])
+            fail_count = len(results) - success_count
+            
+            report = f"✅ تم نشر {success_count} مباراة بنجاح\n"
+            report += f"❌ فشل نشر {fail_count} مباراة\n\n"
+            report += "📋 التفاصيل:\n" + "="*50 + "\n"
+            
+            for r in results:
+                if r['url']:
+                    report += f"✅ {r['title']}\n   🌐 {r['url']}\n\n"
+                else:
+                    report += f"❌ {r['title']}\n   ⚠️ {r['error']}\n\n"
+            
+            self.after(0, lambda: self.status_label.config(
+                text=f"✅ تم نشر {success_count}/{len(results)} مباراة", 
+                foreground="#10B981"
+            ))
+            self.after(0, lambda: messagebox.showinfo("نتائج النشر الجماعي", report))
+        
+        threading.Thread(target=do_publish_all, daemon=True).start()
+    
+    def clear_all(self):
+        self.matches_input.delete("1.0", tk.END)
+        self.matches_listbox.delete(0, tk.END)
+        self.output_text.delete("1.0", tk.END)
+        self.matches = []
+        self.selected_match = None
+        self.generated_pages = []
+        self.match_info_label.config(text="🎯 اختر مباراة (أو عدة مباريات) من القائمة")
+        self.status_label.config(text="🗑️ تم المسح", foreground="#F59E0B")
+
+# ==========================================
+# 11. تشغيل التطبيق
+# ==========================================
+if __name__ == "__main__":
+    print("=" * 60)
+    print("🎯 Saad Live - مولد صفحات المباريات (مع اختيار متعدد)")
+    print("=" * 60)
+    print(f"📝 Blog ID: {BLOG_ID}")
+    print(f"🔑 Credentials: {CREDENTIALS_FILE}")
+    print(f"🎫 Token: {TOKEN_FILE}")
+    print("=" * 60)
+    
+    issues = blogger_manager.check_prerequisites()
+    if issues:
+        print("\n⚠️ تحذيرات:")
+        for issue in issues:
+            print(f"  {issue}")
+        print("\n💡 تأكد من:")
+        print(f"  1. وجود ملف {CREDENTIALS_FILE}")
+        print("  2. تثبيت المكتبات: pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib")
+        print("  3. تفعيل Blogger API في Google Cloud Console")
+        print("=" * 60)
+    
+    app = SaadLiveApp()
+    app.mainloop()

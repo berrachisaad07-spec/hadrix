@@ -1,0 +1,1548 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html>
+<html b:css='false' b:defaultwidgetversion='2' b:layoutsVersion='3' b:responsive='true' b:templateVersion='1.3.0' expr:dir='data:blog.languageDirection' xmlns='http://www.w3.org/1999/xhtml' xmlns:b='http://www.google.com/2005/gml/b' xmlns:data='http://www.google.com/2005/gml/data' xmlns:expr='http://www.google.com/2005/gml/expr'>
+<head>
+<meta charset='UTF-8'/>
+<meta content='width=device-width, initial-scale=1.0' name='viewport'/>
+<title><data:blog.pageTitle/></title>
+<b:include data='blog' name='all-head-content'/>
+
+<b:skin><![CDATA[
+/*
+-----------------------------------------------
+Blogger Template Style
+Name: CineFlix Movie Template - Multi-Language
+----------------------------------------------- */
+
+/* Variable definitions
+====================
+<Variable name="bgColor" description="Background Color" type="color" default="#161823" value="#161823"/>
+<Variable name="textColor" description="Text Color" type="color" default="#e0e0e0" value="#e0e0e0"/>
+<Variable name="linkColor" description="Link Color" type="color" default="#3b82f6" value="#3b82f6"/>
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
+:root{
+    --live-indicator-shadow: hsla(0, 79%, 63%, .5);
+    --rich-blank-fogra-30: hsl(219, 32%, 10%);
+    --rich-blank-fogra-29: hsl(222, 25%, 10%);
+    --live-indicator: hsl(0, 79%, 63%);
+    --oxford-blue-50: hsla(218, 39%, 14%, .8);
+    --oxford-blue: hsl(218, 39%, 14%);
+    --light-azure: hsl(214, 84%, 56%);
+    --off-white: hsl(0, 0%, 88%);
+    --yellow: hsl(45, 100%, 54%);
+    --white: hsl(0, 0%, 100%);
+    --azure: hsl(211, 100%, 50%);
+    --font-family: "Inter", sans-serif;
+    --section-heading: 40px;
+    --font-size-large: 22px;
+    --font-size-medium: 17px;
+    --font-size-small: 14px;
+    --font-size-extra-small: 12px;
+    --fw7: 700;
+    --fw6: 600;
+    --fw5: 500;
+    --padding-x: 120px;
+}
+
+*{ margin: 0; padding: 0; transition: all .5s ease; }
+*, *::before, *::after { box-sizing: border-box; }
+html{ font-family: var(--font-family); }
+h1, h2, h3, h4, h5, h6 { color: var(--white); }
+
+body{
+    background: var(--rich-blank-fogra-29);
+    color: var(--off-white);
+    -webkit-font-smoothing: antialiased;
+}
+
+img{
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    object-fit: cover;
+}
+
+input, button, select{
+    font: inherit;
+    background: none;
+    border: none;
+    outline: none;
+}
+
+button{ color: var(--off-white); cursor: pointer; }
+li{ list-style: none; }
+
+a{
+    text-decoration: none;
+    display: block;
+    color: var(--off-white);
+}
+
+/* RTL Support */
+html[dir="rtl"] body{ direction: rtl; }
+html[dir="rtl"] .navbar-nav li:not(:last-child) { margin-right: 0; margin-left: 60px; }
+html[dir="rtl"] nav{ margin-right: 0; margin-left: 200px; }
+html[dir="rtl"] .navbar-signin ion-icon{ margin-left: 0; margin-right: 5px; }
+html[dir="rtl"] .indicator::after{ right: auto; left: -15px; }
+html[dir="rtl"] .live-card .avatar{ margin-right: 0; margin-left: 15px; }
+html[dir="rtl"] .footer-brand{ margin-right: 0; margin-left: 130px; }
+html[dir="rtl"] .banner-card .card-info div{ margin-right: 0; margin-left: 20px; }
+html[dir="rtl"] .banner-card .card-info ion-icon{ margin-right: 0; margin-left: 5px; }
+html[dir="rtl"] .movie-card .bookmark{ left: auto; right: 15px; }
+html[dir="rtl"] .movie-card .rating{ right: auto; left: 15px; }
+html[dir="rtl"] .movie-card .rating span{ margin-left: 0; margin-right: 5px; }
+html[dir="rtl"] .filter-bar select{ margin-right: 0; margin-left: 15px; }
+
+::-webkit-scrollbar{ background: transparent; border-left: 1px solid var(--oxford-blue); }
+::-webkit-scrollbar-thumb{
+    background: var(--light-azure);
+    border-radius: 5em;
+    border: 3px solid var(--rich-blank-fogra-29);
+}
+
+header, nav { background: var(--rich-blank-fogra-29); }
+
+.container{ max-width: 1920px; margin: auto; }
+.navbar, .banner, .movies, .category, .live{ padding: 0 var(--padding-x); }
+
+.section-heading{
+    font-size: var(--section-heading);
+    font-weight: var(--fw5);
+    margin-bottom: 60px;
+}
+
+.navbar{
+    height: 100px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.navbar-menu-btn{ display: none; }
+nav{ margin-right: 200px; }
+.navbar-nav{ display: flex; }
+.navbar-nav li:not(:last-child) { margin-right: 60px; }
+
+.navbar-link{
+    font-size: var(--font-size-small);
+    font-weight: var(--fw5);
+}
+
+.navbar-link:hover{ color: var(--light-azure); }
+.indicator{ position: relative; }
+
+.indicator::after{
+    content: '';
+    background: var(--live-indicator);
+    position: absolute;
+    top: calc(50% - 1px);
+    right: -15px;
+    width: 4px;
+    height: 4px;
+    box-shadow: 0 0 0 2px var(--live-indicator-shadow);
+    border-radius: 5px;
+}
+
+.navbar-actions{ display: flex; align-items: center; gap: 20px; }
+.navbar-form{ position: relative; margin-right: 30px; }
+
+.navbar-form-search{
+    background: var(--oxford-blue);
+    width: 100%;
+    padding: 12px 20px;
+    border-radius: 15px;
+    color: var(--off-white);
+    font-size: var(--font-size-small);
+    font-weight: var(--fw5);
+}
+
+.navbar-form-btn{
+    background: var(--oxford-blue);
+    position: absolute;
+    top: calc(50% - 10px);
+    right: 10px;
+}
+
+html[dir="rtl"] .navbar-form-btn{ right: auto; left: 10px; }
+
+.navbar-form-btn ion-icon, .navbar-search-btn ion-icon{
+    font-size: 20px;
+    color: var(--light-azure);
+    --ionicon-stroke-width: 50px;
+}
+
+.navbar-form-btn:hover ion-icon, .navbar-form-search::placeholder { color: var(--off-white); }
+.navbar-form-close, .navbar-search-btn{ display: none; }
+
+/* LANGUAGE SWITCHER */
+.language-switcher{ position: relative; }
+
+.lang-btn{
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--oxford-blue);
+    padding: 10px 16px;
+    border-radius: 15px;
+    color: var(--off-white);
+    font-size: var(--font-size-small);
+    font-weight: var(--fw5);
+    cursor: pointer;
+    transition: all .3s ease;
+    white-space: nowrap;
+}
+
+.lang-btn:hover{ background: var(--light-azure); color: var(--white); }
+
+.lang-btn .lang-flag{ font-size: 18px; line-height: 1; flex-shrink: 0; }
+
+.lang-btn .lang-name-display{
+    font-weight: var(--fw7);
+    font-size: var(--font-size-small);
+    display: inline-block;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.lang-btn ion-icon{
+    font-size: 14px;
+    transition: transform .3s ease;
+    flex-shrink: 0;
+}
+
+.language-switcher.active .lang-btn ion-icon{ transform: rotate(180deg); }
+
+.lang-dropdown{
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    background: var(--oxford-blue);
+    border-radius: 12px;
+    padding: 8px;
+    min-width: 170px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all .3s ease;
+    box-shadow: 0 10px 30px rgba(0,0,0,.4);
+    z-index: 200;
+}
+
+html[dir="rtl"] .lang-dropdown{ right: auto; left: 0; }
+
+.language-switcher.active .lang-dropdown{
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.lang-option{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: var(--font-size-small);
+    font-weight: var(--fw5);
+    color: var(--off-white);
+    transition: all .2s ease;
+}
+
+.lang-option:hover{ background: var(--rich-blank-fogra-29); color: var(--light-azure); }
+
+.lang-option.selected{ background: var(--light-azure); color: var(--white); }
+
+.lang-option .lang-flag{ font-size: 18px; }
+
+.lang-option .lang-check{
+    margin-left: auto;
+    font-size: 14px;
+    opacity: 0;
+}
+
+html[dir="rtl"] .lang-option .lang-check{ margin-left: 0; margin-right: auto; }
+
+.lang-option.selected .lang-check{ opacity: 1; }
+
+.navbar-signin{
+    display: flex;
+    align-items: center;
+    font-size: var(--font-size-small);
+}
+
+.navbar-signin ion-icon{
+    font-size: 22px;
+    color: var(--light-azure);
+    margin-left: 5px;
+    --ionicon-stroke-width: 30px;
+}
+
+.navbar-signin:hover span{ color: var(--light-azure); }
+
+.banner{ margin-bottom: 60px; }
+
+.banner-card{
+    position: relative;
+    height: 400px;
+    overflow: hidden;
+    border-radius: 20px;
+    cursor: pointer;
+}
+
+.banner-card .card-content{
+    position: absolute;
+    right: 80px;
+    bottom: 60px;
+    left: 80px;
+}
+
+.banner-card .card-info{
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.banner-card .card-info div{
+    display: flex;
+    align-items: center;
+    margin-right: 20px;
+}
+
+.banner-card .card-info ion-icon{
+    font-size: 20px;
+    color: var(--azure);
+    margin-right: 5px;
+}
+
+.banner-card .card-info span{ font-weight: var(--fw6); }
+
+.banner-card .card-info .quality{
+    background: var(--azure);
+    padding: 2px 5px;
+    border-radius: 5px;
+    font-weight: var(--fw7);
+}
+
+.banner-card .card-title{
+    font-size: 3em;
+    color: var(--white);
+    text-shadow: 2px 0 2px #0007;
+}
+
+.banner-card:hover .banner-img{ transform: scale(1.1); }
+.banner-img{ object-position: top; }
+
+.movies{ margin-bottom: 60px; }
+
+.filter-bar{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--oxford-blue);
+    padding: 20px 30px;
+    border-radius: 20px;
+    margin-bottom: 30px;
+}
+
+.filter-bar select{
+    color: var(--white);
+    font-size: var(--font-size-small);
+    margin-right: 15px;
+    cursor: pointer;
+}
+
+.filter-bar option{ background: var(--oxford-blue); }
+
+.filter-radios{
+    position: relative;
+    background: var(--rich-blank-fogra-29);
+    padding: 10px;
+    border-radius: 15px;
+}
+
+.filter-radios input{ display: none; }
+
+.filter-radios label{
+    position: relative;
+    margin: 0 10px;
+    font-size: var(--font-size-small);
+    user-select: none;
+    cursor: pointer;
+    z-index: 10;
+}
+
+.filter-radios input:checked + label, .filter-radios label:hover { color: var(--light-azure); }
+
+input ~ .checked-radio-bg{
+    --width: 85px;
+    --left: 5px;
+    background: var(--oxford-blue);
+    position: absolute;
+    top: 5px;
+    left: var(--left);
+    bottom: 5px;
+    width: var(--width);
+    border-radius: 10px;
+}
+
+#popular:checked ~ .checked-radio-bg{ --width: 73px; --left: 90px; }
+#newest:checked ~ .checked-radio-bg{ --width: 81px; --left: 163px; }
+
+.movies-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 30px;
+    margin-bottom: 60px;
+}
+
+.movie-card{ --scale: .8; cursor: pointer; }
+
+.movie-card .card-head{
+    position: relative;
+    height: 250px;
+    border-radius: 15px;
+    margin-bottom: 15px;
+    overflow: hidden;
+}
+
+.movie-card:hover .card-img{ transform: scale(1.1); }
+
+.movie-card .card-overlay{
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    backdrop-filter: blur(5px);
+}
+
+.movie-card:hover .card-overlay{ opacity: 1; }
+
+.movie-card .bookmark, .movie-card .rating{
+    position: absolute;
+    top: 15px;
+    padding: 6px;
+    border-radius: 10px;
+    color: var(--light-azure);
+    transform: scale(var(--scale));
+}
+
+.movie-card .bookmark{ background: var(--oxford-blue); left: 15px; }
+.movie-card .bookmark:hover{ color: var(--yellow); }
+
+.movie-card .rating{
+    display: flex;
+    align-items: center;
+    right: 15px;
+    background: var(--oxford-blue-50);
+}
+
+.movie-card .rating span{
+    color: var(--white);
+    font-size: 13px;
+    font-weight: var(--fw5);
+    margin-left: 5px;
+}
+
+.movie-card ion-icon{
+    font-size: 16px;
+    display: block;
+    --ionicon-stroke-width: 50px;
+}
+
+.movie-card .play{
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(var(--scale));
+}
+
+.movie-card .play ion-icon{ font-size: 60px; --ionicon-stroke-width: 20px; }
+.movie-card:hover :is(.bookmark, .rating, .play){ --scale: 1; }
+
+.movie-card .card-title{
+    font-size: var(--font-size-medium);
+    font-weight: var(--fw5);
+    margin-bottom: 5px;
+    text-align: center;
+}
+
+.movie-card:hover .card-title{ color: var(--light-azure); }
+
+.movie-card .card-info{
+    display: flex;
+    justify-content: space-evenly;
+    font-size: var(--font-size-extra-small);
+    font-weight: var(--fw5);
+}
+
+.load-more{
+    background: var(--oxford-blue);
+    display: block;
+    padding: 20px 50px;
+    margin: auto;
+    font-size: var(--font-size-small);
+    font-weight: var(--fw5);
+    border-radius: 15px;
+    color: var(--white);
+}
+
+.load-more:hover{ background: var(--light-azure); }
+
+.category{ margin-bottom: 60px; }
+
+.category-grid{
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 30px;
+}
+
+.category-card{
+    position: relative;
+    height: 150px;
+    border-radius: 20px;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.category-card::after{
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 20%, #000a);
+}
+
+.category-card .name, .category-card .total{
+    position: absolute;
+    bottom: 20px;
+    color: var(--white);
+    z-index: 20;
+}
+
+.category-card .name{ left: 20px; font-size: 20px; }
+.category-card:hover .name{ color: var(--light-azure); }
+
+.category-card .total{
+    right: 20px;
+    font-size: 18px;
+    background: var(--oxford-blue-50);
+    padding: 5px 8px;
+    border-radius: 8px;
+}
+
+.live{ margin-bottom: 60px; }
+
+.live-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 30px;
+}
+
+.live-card{ cursor: pointer; }
+
+.live-card .card-head{
+    position: relative;
+    height: 250px;
+    border-radius: 20px;
+    margin-bottom: 15px;
+    overflow: hidden;
+}
+
+.live-card .card-head::after{
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 20%, #000a);
+}
+
+.live-card:hover .card-img{ transform: scale(1.1); }
+
+.live-card .live-badge, .live-card .total-viewers{
+    position: absolute;
+    left: 30px;
+    border-radius: 10px;
+    padding: 5px 10px;
+    z-index: 10;
+}
+
+.live-card .live-badge{
+    top: 30px;
+    font-size: var(--font-size-extra-small);
+    font-weight: var(--fw5);
+    background: var(--live-indicator);
+}
+
+.live-card .total-viewers{
+    bottom: 30px;
+    font-size: 15px;
+    font-weight: var(--fw6);
+    background: var(--oxford-blue-50);
+}
+
+.live-card .play{
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(.8);
+    opacity: 0;
+    z-index: 10;
+}
+
+.live-card:hover .play{ transform: translate(-50%, -50%) scale(1); opacity: 1; }
+.live-card .play ion-icon{ font-size: 60px; --ionicon-stroke-width: 20px; }
+
+.live-card .card-body{
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
+}
+
+.live-card .avatar{
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    margin-right: 15px;
+    flex-shrink: 0;
+}
+
+.live-card .card-title{
+    font-size: var(--font-size-medium);
+    font-weight: var(--fw5);
+    line-height: 1.5;
+    color: var(--white);
+    margin: 0;
+    padding: 0;
+    white-space: normal;
+    word-wrap: break-word;
+}
+
+.live-card:hover .card-title{ color: var(--light-azure); }
+
+footer{
+    background: var(--rich-blank-fogra-30);
+    padding: 80px var(--padding-x) 40px;
+}
+
+.footer-content{
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 1px solid var(--oxford-blue-50);
+    padding-bottom: 80px;
+}
+
+.footer-brand{ max-width: 250px; margin-right: 130px; }
+.footer-logo{ width: 100px; margin-bottom: 30px; }
+
+.slogan{
+    font-size: var(--font-size-small);
+    line-height: 20px;
+    margin-bottom: 20px;
+}
+
+.social-link a { display: inline-block; }
+.social-link ion-icon{ font-size: 25px; margin-right: 20px; }
+
+.footer-links{
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 50px;
+    align-items: flex-end;
+}
+
+.link-heading{ margin-bottom: 20px; }
+.link-item{ font-size: var(--font-size-small); }
+ul .link-item:not(:last-child) { margin-bottom: 10px; }
+.link-item:hover a{ color: var(--light-azure); }
+
+.footer-copyright{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 40px;
+}
+
+.footer-copyright p, .wrapper a{ font-size: var(--font-size-small); }
+.wrapper a:hover { color: var(--light-azure); }
+.wrapper a:not(:last-child) { margin-right: 50px; }
+.wrapper{ display: flex; }
+
+.hidden-section{ display: none !important; }
+
+@media screen and (max-width: 1200px){
+    :root{ --padding-x: 80px; }
+
+    header{
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        overflow: visible;
+        z-index: 50;
+    }
+
+    header.active{ top: 250px; }
+
+    .navbar-menu-btn{
+        display: block;
+        position: absolute;
+        top: 50%;
+        left: var(--padding-x);
+        transform: translateY(-50%);
+    }
+
+    .navbar-menu-btn span{
+        display: block;
+        background: var(--off-white);
+        width: 25px;
+        height: 2px;
+        margin: 8px;
+    }
+
+    .navbar-menu-btn.active span{ background: var(--light-azure); }
+    .navbar-menu-btn .two { width: 20px; }
+    .navbar-menu-btn .three{ width: 15px; }
+
+    .navbar-menu-btn.active .one{ transform: rotate(45deg) translateY(14px); }
+    .navbar-menu-btn.active .two{ width: 0; }
+    .navbar-menu-btn.active .three{ width: 25px; transform: rotate(-45deg) translateY(-14px); }
+
+    .navbar-brand{ margin-left: 50px; }
+
+    nav{
+        position: fixed;
+        top: -250px;
+        left: 0;
+        width: 100%;
+        z-index: 100;
+    }
+
+    nav.active { top: 0; }
+
+    .navbar-nav{
+        height: 250px;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-start;
+        padding-left: var(--padding-x);
+        border-bottom: 1px solid var(--oxford-blue);
+    }
+
+    .navbar-nav li:not(:last-child){ margin-right: 0; margin-bottom: 30px; }
+
+    .navbar-form{
+        position: absolute;
+        top: 100px;
+        left: var(--padding-x);
+        right: var(--padding-x);
+        height: 0;
+        background: var(--rich-blank-fogra-29);
+        margin-right: 0;
+        display: none;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 100;
+        overflow: hidden;
+        transition: all .3s ease;
+    }
+
+    .navbar-form.active{
+        height: 100px;
+        display: flex;
+    }
+
+    .navbar-form-search{ margin-right: 40px; }
+    .navbar-form-btn{ right: 80px; }
+
+    .navbar-form-close{
+        display: block;
+        padding-top: 4px;
+        opacity: .8;
+    }
+
+    .navbar-form-close:hover{ opacity: 1; }
+    .navbar-form-close ion-icon{ font-size: 30px; color: var(--light-azure); }
+    .navbar-search-btn{ display: block; margin-right: 100px; padding-top: 5px; }
+    .banner{ margin-top: 100px; }
+    .banner-card .card-title{ font-size: 2.5em; }
+    .category-grid{ grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+    .footer-content{ flex-direction: column; }
+    .footer-brand{ margin-right: 0; margin-bottom: 60px; }
+    .footer-links{ grid-template-columns: repeat(auto-fit, minmax(125px, 1fr)); }
+
+    .lang-btn{
+        padding: 8px 12px;
+        gap: 6px;
+    }
+    
+    .lang-btn .lang-name-display{
+        display: inline-block !important;
+        font-size: 12px;
+        font-weight: var(--fw7);
+        visibility: visible !important;
+    }
+}
+
+@media screen and (max-width: 768px){
+    :root{ --padding-x: 40px; }
+    .banner{ display: none; }
+    .movies{ margin-top: 120px; }
+    .filter-bar{ flex-direction: column; align-items: center; }
+    .filter-bar select{ margin-bottom: 20px; }
+    .navbar-signin span{ display: none; }
+    
+    .live-card .card-title{
+        font-size: 15px;
+        line-height: 1.4;
+    }
+    
+    .lang-btn .lang-name-display{
+        display: inline-block !important;
+        visibility: visible !important;
+        font-size: 11px;
+    }
+}
+
+@media screen and (max-width: 575px){
+    :root{
+        --padding-x: 20px;
+        --section-heading: 32px;
+        --font-size-large: 20px;
+    }
+    .navbar-search-btn{ margin-right: 20px; }
+    .navbar-form-search { margin-right: 20px; }
+    .navbar-form-btn{ right: 55px; }
+    .footer-copyright{ flex-direction: column-reverse; }
+    .wrapper{ margin-bottom: 20px; }
+    .navbar-actions{ gap: 8px; }
+    .navbar-form{ margin-right: 10px; }
+    
+    .live-card .card-title{
+        font-size: 14px;
+        line-height: 1.3;
+    }
+    
+    .lang-btn{
+        padding: 6px 10px;
+        gap: 5px;
+    }
+    
+    .lang-btn .lang-flag{
+        font-size: 16px;
+    }
+    
+    .lang-btn .lang-name-display{
+        display: inline-block !important;
+        visibility: visible !important;
+        font-size: 11px;
+        font-weight: var(--fw7);
+    }
+    
+    .lang-btn ion-icon{
+        font-size: 12px;
+    }
+}
+]]></b:skin>
+
+</head>
+<body>
+
+<b:section class='hidden-section' id='hidden-section' maxwidgets='1' showaddelement='no'>
+  <b:widget id='HTML99' locked='true' title='Hidden' type='HTML' version='2' visible='true'>
+    <b:widget-settings>
+      <b:widget-setting name='content'/>
+    </b:widget-settings>
+    <b:includable id='main'>
+</b:includable>
+  </b:widget>
+</b:section>
+
+<!-- HEADER -->
+<header>
+<div class='navbar'>
+<button class='navbar-menu-btn' type='button'>
+<span class='one'/>
+<span class='two'/>
+<span class='three'/>
+</button>
+
+<a class='navbar-brand' href='/'>
+<img alt='logo' src='https://i.postimg.cc/KvjKVZXj/logo.png'/>
+</a>
+
+<nav>
+<ul class='navbar-nav'>
+<li><a class='navbar-link' data-i18n='nav_home' href='/'>Home</a></li>
+<li><a class='navbar-link' data-i18n='nav_category' href='#category'>Category</a></li>
+<li><a class='navbar-link indicator' data-i18n='nav_live' href='#live'>LIVE</a></li>
+</ul>
+</nav>
+
+<div class='navbar-actions'>
+<form action='#' class='navbar-form'>
+<input class='navbar-form-search' data-i18n-placeholder='search_placeholder' name='search' placeholder='I&apos;m looking for...' type='text'/>
+<button class='navbar-form-btn' type='button'>
+<ion-icon name='search'/>
+</button>
+<button class='navbar-form-close' type='button'>
+<ion-icon name='close-circle-outline'/>
+</button>
+</form>
+<button class='navbar-search-btn' type='button'>
+<ion-icon name='search'/>
+</button>
+
+<!-- LANGUAGE SWITCHER -->
+<div class='language-switcher'>
+<button class='lang-btn' type='button'>
+<span class='lang-flag'>🇺🇸</span>
+<span class='lang-name-display'>EN</span>
+<ion-icon name='chevron-down'/>
+</button>
+<div class='lang-dropdown'>
+<div class='lang-option' data-code='EN' data-flag='🇺🇸' data-lang='en'>
+<span class='lang-flag'>🇺🇸</span>
+<span class='lang-label'>English</span>
+<ion-icon class='lang-check' name='checkmark'/>
+</div>
+<div class='lang-option' data-code='AR' data-flag='🇸' data-lang='ar'>
+<span class='lang-flag'>🇸🇦</span>
+<span class='lang-label'>العربية</span>
+<ion-icon class='lang-check' name='checkmark'/>
+</div>
+<div class='lang-option' data-code='FR' data-flag='🇫🇷' data-lang='fr'>
+<span class='lang-flag'>🇫🇷</span>
+<span class='lang-label'>Français</span>
+<ion-icon class='lang-check' name='checkmark'/>
+</div>
+<div class='lang-option' data-code='ES' data-flag='🇪' data-lang='es'>
+<span class='lang-flag'>🇪</span>
+<span class='lang-label'>Español</span>
+<ion-icon class='lang-check' name='checkmark'/>
+</div>
+<div class='lang-option' data-code='DE' data-flag='🇩🇪' data-lang='de'>
+<span class='lang-flag'>🇩🇪</span>
+<span class='lang-label'>Deutsch</span>
+<ion-icon class='lang-check' name='checkmark'/>
+</div>
+</div>
+</div>
+
+<a class='navbar-signin' href='#'>
+<span data-i18n='sign_in'>Sign In</span>
+<ion-icon name='log-in'/>
+</a>
+</div>
+</div>
+</header>
+
+<!-- MAIN CONTENT -->
+<main>
+
+<section class='banner'>
+<div class='banner-card'>
+<img alt='banner' class='banner-img' src='https://i.postimg.cc/Y9SMdz0P/John-Wick-3.jpg'/>
+<div class='card-content'>
+<div class='card-info'>
+<div class='genre'>
+<ion-icon name='film'/>
+<span>Action/Thriller</span>
+</div>
+<div class='year'>
+<ion-icon name='calendar'/>
+<span>2019</span>
+</div>
+<div class='duration'>
+<ion-icon name='time'/>
+<span data-i18n='duration_val'>2h 11min</span>
+</div>
+<div class='quality'>4k</div>
+</div>
+<h2 class='card-title'>John Wick: Chapter 3 - Parabellum</h2>
+</div>
+</div>
+</section>
+
+<section class='movies'>
+<div class='filter-bar'>
+<div class='filter-dropdowns'>
+<select class='genre' name='genre'>
+<option data-i18n='all_genres' value='all genres'>All Genres</option>
+<option value='action'>Action</option>
+<option data-i18n='genre_adventure' value='adventure'>Adventure</option>
+<option data-i18n='genre_animation' value='animation'>Animation</option>
+<option data-i18n='genre_drama' value='drama'>Drama</option>
+<option data-i18n='genre_horror' value='horror'>Horror</option>
+<option value='scifi'>Sci-fi</option>
+</select>
+<select class='year' name='year'>
+<option data-i18n='all_years' value='all years'>All years</option>
+<option value='2024'>2024</option>
+<option value='2020-2023'>2020-2023</option>
+<option value='2010-2019'>2010-2019</option>
+</select>
+</div>
+<div class='filter-radios'>
+<input checked='checked' id='featured' name='grade' type='radio'/>
+<label data-i18n='filter_featured' for='featured'>Featured</label>
+<input id='popular' name='grade' type='radio'/>
+<label data-i18n='filter_popular' for='popular'>Popular</label>
+<input id='newest' name='grade' type='radio'/>
+<label data-i18n='filter_newest' for='newest'>Newest</label>
+<div class='checked-radio-bg'/>
+</div>
+</div>
+
+<div class='movies-grid'>
+<div class='movie-card'>
+<div class='card-head'>
+<img alt='movie' class='card-img' src='https://i.postimg.cc/C5mrM9gh/red-notice.jpg'/>
+<div class='card-overlay'>
+<div class='bookmark'><ion-icon name='bookmark'/></div>
+<div class='rating'><ion-icon name='star-outline'/><span>6.3</span></div>
+<div class='play'><ion-icon name='play-circle-outline'/></div>
+</div>
+</div>
+<div class='card-body'>
+<h3 class='card-title'>Red Notice</h3>
+<div class='card-info'><span class='genre'>Action/Comedy</span><span class='year'>2021</span></div>
+</div>
+</div>
+
+<div class='movie-card'>
+<div class='card-head'>
+<img alt='movie' class='card-img' src='https://i.postimg.cc/brB48dkY/spider-men.jpg'/>
+<div class='card-overlay'>
+<div class='bookmark'><ion-icon name='bookmark'/></div>
+<div class='rating'><ion-icon name='star-outline'/><span>7.4</span></div>
+<div class='play'><ion-icon name='play-circle-outline'/></div>
+</div>
+</div>
+<div class='card-body'>
+<h3 class='card-title'>Spider-Man: Homecoming</h3>
+<div class='card-info'><span class='genre'>Action/Adventure</span><span class='year'>2017</span></div>
+</div>
+</div>
+
+<div class='movie-card'>
+<div class='card-head'>
+<img alt='movie' class='card-img' src='https://i.postimg.cc/Kv3HBGtL/matrix.jpg'/>
+<div class='card-overlay'>
+<div class='bookmark'><ion-icon name='bookmark'/></div>
+<div class='rating'><ion-icon name='star-outline'/><span>5.6</span></div>
+<div class='play'><ion-icon name='play-circle-outline'/></div>
+</div>
+</div>
+<div class='card-body'>
+<h3 class='card-title'>The Matrix Resurrections</h3>
+<div class='card-info'><span class='genre'>Sci-fi/Action</span><span class='year'>2021</span></div>
+</div>
+</div>
+
+<div class='movie-card'>
+<div class='card-head'>
+<img alt='movie' class='card-img' src='https://i.postimg.cc/c4YNZM9V/eternals.jpg'/>
+<div class='card-overlay'>
+<div class='bookmark'><ion-icon name='bookmark'/></div>
+<div class='rating'><ion-icon name='star-outline'/><span>6.3</span></div>
+<div class='play'><ion-icon name='play-circle-outline'/></div>
+</div>
+</div>
+<div class='card-body'>
+<h3 class='card-title'>Eternals</h3>
+<div class='card-info'><span class='genre'>Adventure/Action</span><span class='year'>2021</span></div>
+</div>
+</div>
+
+<div class='movie-card'>
+<div class='card-head'>
+<img alt='movie' class='card-img' src='https://i.postimg.cc/Y9jJP1LD/dune.jpg'/>
+<div class='card-overlay'>
+<div class='bookmark'><ion-icon name='bookmark'/></div>
+<div class='rating'><ion-icon name='star-outline'/><span>8.0</span></div>
+<div class='play'><ion-icon name='play-circle-outline'/></div>
+</div>
+</div>
+<div class='card-body'>
+<h3 class='card-title'>Dune: Part One</h3>
+<div class='card-info'><span class='genre'>Sci-fi/Adventure</span><span class='year'>2021</span></div>
+</div>
+</div>
+
+<div class='movie-card'>
+<div class='card-head'>
+<img alt='movie' class='card-img' src='https://i.postimg.cc/q7NwVQQK/1917.jpg'/>
+<div class='card-overlay'>
+<div class='bookmark'><ion-icon name='bookmark'/></div>
+<div class='rating'><ion-icon name='star-outline'/><span>8.2</span></div>
+<div class='play'><ion-icon name='play-circle-outline'/></div>
+</div>
+</div>
+<div class='card-body'>
+<h3 class='card-title'>1917</h3>
+<div class='card-info'><span class='genre'>War/Drama</span><span class='year'>2019</span></div>
+</div>
+</div>
+
+<div class='movie-card'>
+<div class='card-head'>
+<img alt='movie' class='card-img' src='https://i.postimg.cc/d1vhmV70/shang-chi.jpg'/>
+<div class='card-overlay'>
+<div class='bookmark'><ion-icon name='bookmark'/></div>
+<div class='rating'><ion-icon name='star-outline'/><span>7.4</span></div>
+<div class='play'><ion-icon name='play-circle-outline'/></div>
+</div>
+</div>
+<div class='card-body'>
+<h3 class='card-title'>Shang-Chi</h3>
+<div class='card-info'><span class='genre'>Action/Fantasy</span><span class='year'>2021</span></div>
+</div>
+</div>
+
+<div class='movie-card'>
+<div class='card-head'>
+<img alt='movie' class='card-img' src='https://i.postimg.cc/L6r638wM/casino-royale.jpg'/>
+<div class='card-overlay'>
+<div class='bookmark'><ion-icon name='bookmark'/></div>
+<div class='rating'><ion-icon name='star-outline'/><span>8.0</span></div>
+<div class='play'><ion-icon name='play-circle-outline'/></div>
+</div>
+</div>
+<div class='card-body'>
+<h3 class='card-title'>Casino Royale</h3>
+<div class='card-info'><span class='genre'>Action/Adventure</span><span class='year'>2006</span></div>
+</div>
+</div>
+
+<div class='movie-card'>
+<div class='card-head'>
+<img alt='movie' class='card-img' src='https://i.postimg.cc/Gt6rKXMj/dark-knight.jpg'/>
+<div class='card-overlay'>
+<div class='bookmark'><ion-icon name='bookmark'/></div>
+<div class='rating'><ion-icon name='star-outline'/><span>9.0</span></div>
+<div class='play'><ion-icon name='play-circle-outline'/></div>
+</div>
+</div>
+<div class='card-body'>
+<h3 class='card-title'>The Dark Knight</h3>
+<div class='card-info'><span class='genre'>Action/Adventure</span><span class='year'>2008</span></div>
+</div>
+</div>
+
+<div class='movie-card'>
+<div class='card-head'>
+<img alt='movie' class='card-img' src='https://i.postimg.cc/hjjBqk6r/panther.jpg'/>
+<div class='card-overlay'>
+<div class='bookmark'><ion-icon name='bookmark'/></div>
+<div class='rating'><ion-icon name='star-outline'/><span>7.3</span></div>
+<div class='play'><ion-icon name='play-circle-outline'/></div>
+</div>
+</div>
+<div class='card-body'>
+<h3 class='card-title'>Black Panther</h3>
+<div class='card-info'><span class='genre'>Action/Adventure</span><span class='year'>2018</span></div>
+</div>
+</div>
+
+<div class='movie-card'>
+<div class='card-head'>
+<img alt='movie' class='card-img' src='https://i.postimg.cc/QtyrN6rr/venom.jpg'/>
+<div class='card-overlay'>
+<div class='bookmark'><ion-icon name='bookmark'/></div>
+<div class='rating'><ion-icon name='star-outline'/><span>6.6</span></div>
+<div class='play'><ion-icon name='play-circle-outline'/></div>
+</div>
+</div>
+<div class='card-body'>
+<h3 class='card-title'>Venom</h3>
+<div class='card-info'><span class='genre'>Action/Adventure</span><span class='year'>2018</span></div>
+</div>
+</div>
+
+<div class='movie-card'>
+<div class='card-head'>
+<img alt='movie' class='card-img' src='https://i.postimg.cc/3JgJ9TT4/LOTR.jpg'/>
+<div class='card-overlay'>
+<div class='bookmark'><ion-icon name='bookmark'/></div>
+<div class='rating'><ion-icon name='star-outline'/><span>9.0</span></div>
+<div class='play'><ion-icon name='play-circle-outline'/></div>
+</div>
+</div>
+<div class='card-body'>
+<h3 class='card-title'>Lord Of The Rings</h3>
+<div class='card-info'><span class='genre'>Fantasy/Adventure</span><span class='year'>2003</span></div>
+</div>
+</div>
+</div>
+
+<button class='load-more' data-i18n='load_more'>LOAD MORE</button>
+</section>
+
+<section class='category' id='category'>
+<h2 class='section-heading' data-i18n='section_category'>Category</h2>
+<div class='category-grid'>
+<div class='category-card'>
+<img alt='image' class='card-img' src='https://i.postimg.cc/JzfWFmfC/action.jpg'/>
+<div class='name'>Action</div>
+<div class='total'>100</div>
+</div>
+<div class='category-card'>
+<img alt='image' class='card-img' src='https://i.postimg.cc/CKpxqjL8/comedy.jpg'/>
+<div class='name'>Comedy</div>
+<div class='total'>50</div>
+</div>
+<div class='category-card'>
+<img alt='image' class='card-img' src='https://i.postimg.cc/3rfrBMxY/thriller.webp'/>
+<div class='name'>Thriller</div>
+<div class='total'>20</div>
+</div>
+<div class='category-card'>
+<img alt='image' class='card-img' src='https://i.postimg.cc/HkXpdV4k/horror.jpg'/>
+<div class='name' data-i18n='genre_horror'>Horror</div>
+<div class='total'>80</div>
+</div>
+<div class='category-card'>
+<img alt='image' class='card-img' src='https://i.postimg.cc/qRRVhRnn/adventure.jpg'/>
+<div class='name' data-i18n='genre_adventure'>Adventure</div>
+<div class='total'>100</div>
+</div>
+<div class='category-card'>
+<img alt='image' class='card-img' src='https://i.postimg.cc/15pmZ8K5/animated.jpg'/>
+<div class='name' data-i18n='genre_animation'>Animation</div>
+<div class='total'>50</div>
+</div>
+<div class='category-card'>
+<img alt='image' class='card-img' src='https://i.postimg.cc/XvX6Xq95/crime.jpg'/>
+<div class='name'>Crime</div>
+<div class='total'>20</div>
+</div>
+<div class='category-card'>
+<img alt='image' class='card-img' src='https://i.postimg.cc/8568BYKP/sci-fi.jpg'/>
+<div class='name'>Sci-fi</div>
+<div class='total'>80</div>
+</div>
+</div>
+</section>
+
+<section class='live' id='live'>
+<h2 class='section-heading' data-i18n='section_live'>Live TV Shows</h2>
+<div class='live-grid'>
+<div class='live-card'>
+<div class='card-head'>
+<img alt='image' class='card-img' src='https://i.postimg.cc/m26wBrZJ/planet.jpg'/>
+<div class='live-badge' data-i18n='live_badge'>LIVE</div>
+<div class='total-viewers'>305K <span data-i18n='viewers'>viewers</span></div>
+<div class='play'><ion-icon name='play-circle-outline'/></div>
+</div>
+<div class='card-body'>
+<img alt='image' class='avatar' src='https://i.postimg.cc/YCzQjqtt/bbcamerica.jpg'/>
+<h3 class='card-title'>Planet Earth II<br/>Season 1 - Islands</h3>
+</div>
+</div>
+<div class='live-card'>
+<div class='card-head'>
+<img alt='image' class='card-img' src='https://i.postimg.cc/PrY8CrdP/got.jpg'/>
+<div class='live-badge' data-i18n='live_badge'>LIVE</div>
+<div class='total-viewers'>1.7M <span data-i18n='viewers'>viewers</span></div>
+<div class='play'><ion-icon name='play-circle-outline'/></div>
+</div>
+<div class='card-body'>
+<img alt='image' class='avatar' src='https://i.postimg.cc/ryWpJn3H/HBO-Logo-square.jpg'/>
+<h3 class='card-title'>Game of Thrones<br/>Season 5 - Mother&#39;s Mercy</h3>
+</div>
+</div>
+<div class='live-card'>
+<div class='card-head'>
+<img alt='image' class='card-img' src='https://i.postimg.cc/RVLZr3MQ/vikins.jpg'/>
+<div class='live-badge' data-i18n='live_badge'>LIVE</div>
+<div class='total-viewers'>468K <span data-i18n='viewers'>viewers</span></div>
+<div class='play'><ion-icon name='play-circle-outline'/></div>
+</div>
+<div class='card-body'>
+<img alt='image' class='avatar' src='https://i.postimg.cc/ryWpJn3H/HBO-Logo-square.jpg'/>
+<h3 class='card-title'>Vikings<br/>Season 4 - What Might Have Been</h3>
+</div>
+</div>
+</div>
+</section>
+
+</main>
+
+<footer>
+<div class='footer-content'>
+<div class='footer-brand'>
+<img alt='image' class='footer-logo' src='https://i.postimg.cc/KvjKVZXj/logo.png'/>
+<p class='slogan' data-i18n='footer_slogan'>Movies &amp; TV Shows, Online Cinema, Movie Database HTML Template</p>
+<div class='social-link'>
+<a href='#'><ion-icon name='logo-facebook'/></a>
+<a href='#'><ion-icon name='logo-twitter'/></a>
+<a href='#'><ion-icon name='logo-instagram'/></a>
+<a href='#'><ion-icon name='logo-tiktok'/></a>
+<a href='#'><ion-icon name='logo-youtube'/></a>
+</div>
+</div>
+<div class='footer-links'>
+<ul>
+<h4 class='link-heading'>CineFlix</h4>
+<li class='link-item'><a data-i18n='footer_about' href='#'>About us</a></li>
+<li class='link-item'><a data-i18n='footer_profile' href='#'>My profile</a></li>
+<li class='link-item'><a data-i18n='footer_pricing' href='#'>Pricing plans</a></li>
+<li class='link-item'><a data-i18n='footer_contacts' href='#'>Contacts</a></li>
+</ul>
+<ul>
+<h4 class='link-heading' data-i18n='footer_browse'>Browse</h4>
+<li class='link-item'><a data-i18n='footer_livetv' href='#'>Live TV</a></li>
+<li class='link-item'><a data-i18n='footer_livenews' href='#'>Live News</a></li>
+<li class='link-item'><a data-i18n='footer_livesports' href='#'>Live Sports</a></li>
+<li class='link-item'><a data-i18n='footer_streaming' href='#'>Streaming Library</a></li>
+</ul>
+<ul>
+<li class='link-item'><a data-i18n='footer_tvshows' href='#'>TV Shows</a></li>
+<li class='link-item'><a data-i18n='footer_movies' href='#'>Movies</a></li>
+<li class='link-item'><a data-i18n='footer_kids' href='#'>Kids</a></li>
+<li class='link-item'><a data-i18n='footer_collections' href='#'>Collections</a></li>
+</ul>
+<ul>
+<h4 class='link-heading' data-i18n='footer_help'>Help</h4>
+<li class='link-item'><a data-i18n='footer_billing' href='#'>Account &amp; Billing</a></li>
+<li class='link-item'><a data-i18n='footer_plans' href='#'>Plans &amp; Pricing</a></li>
+<li class='link-item'><a data-i18n='footer_devices' href='#'>Supported Devices</a></li>
+<li class='link-item'><a data-i18n='footer_access' href='#'>Accessibility</a></li>
+</ul>
+</div>
+</div>
+<div class='footer-copyright'>
+<div class='copyright'>
+<p><span data-i18n='copyright'>&#169; Copyright 2024 CineFlix</span></p>
+</div>
+<div class='wrapper'>
+<a data-i18n='footer_privacy' href='#'>Privacy policy</a>
+<a data-i18n='footer_terms' href='#'>Terms and conditions</a>
+</div>
+</div>
+</footer>
+
+<script src='https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js'/>
+<script type='text/javascript'>
+//<![CDATA[
+'use strict';
+
+const translations = {
+    en: {
+        nav_home: "Home", nav_category: "Category", nav_live: "LIVE",
+        sign_in: "Sign In", search_placeholder: "I'm looking for...",
+        all_genres: "All Genres", all_years: "All years",
+        genre_adventure: "Adventure", genre_animation: "Animation",
+        genre_drama: "Drama", genre_horror: "Horror",
+        filter_featured: "Featured", filter_popular: "Popular", filter_newest: "Newest",
+        load_more: "LOAD MORE", section_category: "Category",
+        section_live: "Live TV Shows", live_badge: "LIVE", viewers: "viewers",
+        duration_val: "2h 11min",
+        footer_slogan: "Movies & TV Shows, Online Cinema, Movie Database HTML Template",
+        footer_about: "About us", footer_profile: "My profile",
+        footer_pricing: "Pricing plans", footer_contacts: "Contacts",
+        footer_browse: "Browse", footer_livetv: "Live TV",
+        footer_livenews: "Live News", footer_livesports: "Live Sports",
+        footer_streaming: "Streaming Library", footer_tvshows: "TV Shows",
+        footer_movies: "Movies", footer_kids: "Kids",
+        footer_collections: "Collections", footer_help: "Help",
+        footer_billing: "Account & Billing", footer_plans: "Plans & Pricing",
+        footer_devices: "Supported Devices", footer_access: "Accessibility",
+        footer_privacy: "Privacy policy", footer_terms: "Terms and conditions",
+        copyright: "© Copyright 2024 CineFlix"
+    },
+    ar: {
+        nav_home: "الرئيسية", nav_category: "التصنيفات", nav_live: "مباشر",
+        sign_in: "تسجيل الدخول", search_placeholder: "أنا أبحث عن...",
+        all_genres: "جميع الأنواع", all_years: "جميع السنوات",
+        genre_adventure: "مغامرة", genre_animation: "رسوم متحركة",
+        genre_drama: "دراما", genre_horror: "رعب",
+        filter_featured: "مميز", filter_popular: "شائع", filter_newest: "الأحدث",
+        load_more: "تحميل المزيد", section_category: "التصنيفات",
+        section_live: "برامج تلفزيونية مباشرة", live_badge: "مباشر", viewers: "مشاهد",
+        duration_val: "ساعتان و 11 دقيقة",
+        footer_slogan: "أفلام وبرامج تلفزيونية، سينما أونلاين، قاعدة بيانات الأفلام",
+        footer_about: "من نحن", footer_profile: "ملفي الشخصي",
+        footer_pricing: "خطط الأسعار", footer_contacts: "اتصل بنا",
+        footer_browse: "تصفح", footer_livetv: "التلفزيون المباشر",
+        footer_livenews: "الأخبار المباشرة", footer_livesports: "الرياضة المباشرة",
+        footer_streaming: "مكتبة البث", footer_tvshows: "البرامج التلفزيونية",
+        footer_movies: "الأفلام", footer_kids: "الأطفال",
+        footer_collections: "المجموعات", footer_help: "المساعدة",
+        footer_billing: "الحساب والفواتير", footer_plans: "الخطط والأسعار",
+        footer_devices: "الأجهزة المدعومة", footer_access: "إمكانية الوصول",
+        footer_privacy: "سياسة الخصوصية", footer_terms: "الشروط والأحكام",
+        copyright: "© حقوق الطبع والنشر 2024 CineFlix"
+    },
+    fr: {
+        nav_home: "Accueil", nav_category: "Catégorie", nav_live: "EN DIRECT",
+        sign_in: "Connexion", search_placeholder: "Je recherche...",
+        all_genres: "Tous les genres", all_years: "Toutes les années",
+        genre_adventure: "Aventure", genre_animation: "Animation",
+        genre_drama: "Drame", genre_horror: "Horreur",
+        filter_featured: "En vedette", filter_popular: "Populaire", filter_newest: "Nouveauté",
+        load_more: "CHARGER PLUS", section_category: "Catégorie",
+        section_live: "Émissions TV en direct", live_badge: "EN DIRECT", viewers: "spectateurs",
+        duration_val: "2h 11min",
+        footer_slogan: "Films et émissions TV, Cinéma en ligne, Base de données de films",
+        footer_about: "À propos", footer_profile: "Mon profil",
+        footer_pricing: "Tarifs", footer_contacts: "Contacts",
+        footer_browse: "Parcourir", footer_livetv: "TV en direct",
+        footer_livenews: "Actualités en direct", footer_livesports: "Sports en direct",
+        footer_streaming: "Bibliothèque de streaming", footer_tvshows: "Émissions TV",
+        footer_movies: "Films", footer_kids: "Enfants",
+        footer_collections: "Collections", footer_help: "Aide",
+        footer_billing: "Compte et facturation", footer_plans: "Plans et tarifs",
+        footer_devices: "Appareils compatibles", footer_access: "Accessibilité",
+        footer_privacy: "Politique de confidentialité", footer_terms: "Conditions générales",
+        copyright: "© Copyright 2024 CineFlix"
+    },
+    es: {
+        nav_home: "Inicio", nav_category: "Categoría", nav_live: "EN VIVO",
+        sign_in: "Iniciar sesión", search_placeholder: "Estoy buscando...",
+        all_genres: "Todos los géneros", all_years: "Todos los años",
+        genre_adventure: "Aventura", genre_animation: "Animación",
+        genre_drama: "Drama", genre_horror: "Terror",
+        filter_featured: "Destacado", filter_popular: "Popular", filter_newest: "Más nuevo",
+        load_more: "CARGAR MÁS", section_category: "Categoría",
+        section_live: "Programas de TV en vivo", live_badge: "EN VIVO", viewers: "espectadores",
+        duration_val: "2h 11min",
+        footer_slogan: "Películas y programas de TV, Cine en línea, Base de datos de películas",
+        footer_about: "Sobre nosotros", footer_profile: "Mi perfil",
+        footer_pricing: "Planes de precios", footer_contacts: "Contactos",
+        footer_browse: "Explorar", footer_livetv: "TV en vivo",
+        footer_livenews: "Noticias en vivo", footer_livesports: "Deportes en vivo",
+        footer_streaming: "Biblioteca de streaming", footer_tvshows: "Programas de TV",
+        footer_movies: "Películas", footer_kids: "Niños",
+        footer_collections: "Colecciones", footer_help: "Ayuda",
+        footer_billing: "Cuenta y facturación", footer_plans: "Planes y precios",
+        footer_devices: "Dispositivos compatibles", footer_access: "Accesibilidad",
+        footer_privacy: "Política de privacidad", footer_terms: "Términos y condiciones",
+        copyright: "© Copyright 2024 CineFlix"
+    },
+    de: {
+        nav_home: "Startseite", nav_category: "Kategorie", nav_live: "LIVE",
+        sign_in: "Anmelden", search_placeholder: "Ich suche nach...",
+        all_genres: "Alle Genres", all_years: "Alle Jahre",
+        genre_adventure: "Abenteuer", genre_animation: "Animation",
+        genre_drama: "Drama", genre_horror: "Horror",
+        filter_featured: "Empfohlen", filter_popular: "Beliebt", filter_newest: "Neueste",
+        load_more: "MEHR LADEN", section_category: "Kategorie",
+        section_live: "Live-TV-Sendungen", live_badge: "LIVE", viewers: "Zuschauer",
+        duration_val: "2Std 11Min",
+        footer_slogan: "Filme & TV-Shows, Online-Kino, Filmdatenbank HTML-Vorlage",
+        footer_about: "Über uns", footer_profile: "Mein Profil",
+        footer_pricing: "Preispläne", footer_contacts: "Kontakte",
+        footer_browse: "Durchsuchen", footer_livetv: "Live-TV",
+        footer_livenews: "Live-Nachrichten", footer_livesports: "Live-Sport",
+        footer_streaming: "Streaming-Bibliothek", footer_tvshows: "TV-Shows",
+        footer_movies: "Filme", footer_kids: "Kinder",
+        footer_collections: "Sammlungen", footer_help: "Hilfe",
+        footer_billing: "Konto & Abrechnung", footer_plans: "Pläne & Preise",
+        footer_devices: "Unterstützte Geräte", footer_access: "Barrierefreiheit",
+        footer_privacy: "Datenschutzrichtlinie", footer_terms: "Geschäftsbedingungen",
+        copyright: "© Copyright 2024 CineFlix"
+    }
+};
+
+const rtlLanguages = ['ar'];
+
+function applyLanguage(lang) {
+    const dict = translations[lang] || translations.en;
+    const isRTL = rtlLanguages.includes(lang);
+    
+    document.documentElement.setAttribute('dir', isRTL ? 'rtl' : 'ltr');
+    document.documentElement.setAttribute('lang', lang);
+    
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (dict[key]) el.textContent = dict[key];
+    });
+    
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (dict[key]) el.setAttribute('placeholder', dict[key]);
+    });
+    
+    const langOption = document.querySelector('.lang-option[data-lang="' + lang + '"]');
+    if (langOption) {
+        const flag = langOption.getAttribute('data-flag');
+        const code = langOption.getAttribute('data-code');
+        const flagEl = document.querySelector('.lang-btn .lang-flag');
+        const nameEl = document.querySelector('.lang-name-display');
+        if (flagEl) flagEl.textContent = flag;
+        if (nameEl) nameEl.textContent = code;
+    }
+    
+    document.querySelectorAll('.lang-option').forEach(opt => {
+        if (opt.getAttribute('data-lang') === lang) {
+            opt.classList.add('selected');
+        } else {
+            opt.classList.remove('selected');
+        }
+    });
+    
+    try { localStorage.setItem('cineflix_lang', lang); } catch(e) {}
+}
+
+const langSwitcher = document.querySelector('.language-switcher');
+const langBtn = document.querySelector('.lang-btn');
+
+if (langBtn) {
+    langBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        langSwitcher.classList.toggle('active');
+    });
+}
+
+document.querySelectorAll('.lang-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+        const lang = opt.getAttribute('data-lang');
+        applyLanguage(lang);
+        langSwitcher.classList.remove('active');
+    });
+});
+
+document.addEventListener('click', (e) => {
+    if (langSwitcher && !langSwitcher.contains(e.target)) {
+        langSwitcher.classList.remove('active');
+    }
+});
+
+const header = document.querySelector('header');
+const nav = document.querySelector('nav');
+const navbarMenuBtn = document.querySelector('.navbar-menu-btn');
+const navbarForm = document.querySelector('.navbar-form');
+const navbarFormCloseBtn = document.querySelector('.navbar-form-close');
+const navbarSearchBtn = document.querySelector('.navbar-search-btn');
+
+function navIsActive(){
+    if(header) header.classList.toggle('active');
+    if(nav) nav.classList.toggle('active');
+    if(navbarMenuBtn) navbarMenuBtn.classList.toggle('active');
+}
+
+if(navbarMenuBtn) navbarMenuBtn.addEventListener('click', navIsActive);
+
+const searchBarIsActive = () => {
+    if(navbarForm) navbarForm.classList.toggle('active');
+};
+
+if(navbarSearchBtn) navbarSearchBtn.addEventListener('click', searchBarIsActive);
+if(navbarFormCloseBtn) navbarFormCloseBtn.addEventListener('click', searchBarIsActive);
+
+(function initLanguage() {
+    let savedLang = 'en';
+    try { savedLang = localStorage.getItem('cineflix_lang') || 'en'; } catch(e) {}
+    if (!translations[savedLang]) savedLang = 'en';
+    applyLanguage(savedLang);
+})();
+//]]>
+</script>
+
+</body>
+</html>   

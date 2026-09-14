@@ -1,0 +1,359 @@
+import time
+import random
+import requests
+import subprocess
+import re
+import os
+import sys
+from bs4 import BeautifulSoup
+import undetected_chromedriver as uc
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.keys import Keys
+import urllib3
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+TARGET_URL = "https://www.saad-live.kozow.com/"
+PROXY_SITE = "https://free-proxy-list.net/fr/"
+NUM_VISITS = 5
+
+# ============================================
+# 1. CHROME VERSION
+# ============================================
+def get_chrome_version():
+    try:
+        result = subprocess.run(
+            ['reg', 'query', 'HKEY_CURRENT_USER\\Software\\Google\\Chrome\\BLBeacon', '/v', 'version'],
+            capture_output=True, text=True, timeout=5, shell=True
+        )
+        match = re.search(r'(\d+)', result.stdout)
+        if match:
+            return int(match.group(1))
+    except: pass
+    return 150
+
+# ============================================
+# 2. EXTRACT PROXIES MEN FREE-PROXY-LIST
+# ============================================
+def extract_proxies_from_site():
+    """Kanjbed proxies men free-proxy-list.net/fr/"""
+    print(f"[*] Kanft7 {PROXY_SITE}...")
+    
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/150.0.0.0 Safari/537.36",
+        "Accept-Language": "fr-FR,fr;q=0.9"
+    }
+    
+    try:
+        res = requests.get(PROXY_SITE, headers=headers, timeout=15)
+        soup = BeautifulSoup(res.text, 'html.parser')
+        
+        # L9a la table dyal proxies
+        table = soup.find('table', class_='table')
+        if not table:
+            print("  [❌] Ma l9it table dyal proxies!")
+            return []
+        
+        proxies = []
+        rows = table.find('tbody').find_all('tr') if table.find('tbody') else table.find_all('tr')[1:]
+        
+        for row in rows:
+            cols = row.find_all('td')
+            if len(cols) >= 8:
+                ip = cols[0].text.strip()
+                port = cols[1].text.strip()
+                country = cols[3].text.strip()
+                anonymity = cols[4].text.strip().lower()
+                https = cols[6].text.strip().lower()
+                
+                # Ghir proxies elite w anonymous HTTPS
+                if (anonymity in ['elite proxy', 'anonymous']) and https == 'yes':
+                    proxy = f"{ip}:{port}"
+                    proxies.append({
+                        'proxy': proxy,
+                        'country': country,
+                        'anonymity': anonymity
+                    })
+        
+        print(f"  [✅] Jbed {len(proxies)} proxies (elite + anonymous + HTTPS)")
+        
+        # Afficher les 5 premiers
+        print("\n  Top 5 proxies:")
+        for i, p in enumerate(proxies[:5], 1):
+            print(f"    {i}. {p['proxy']} ({p['country']}, {p['anonymity']})")
+        
+        return proxies
+        
+    except Exception as e:
+        print(f"  [❌] Erreur: {e}")
+        return []
+
+# ============================================
+# 3. STRICT PROXY VALIDATION
+# ============================================
+def test_proxy_strict(proxy):
+    """Test strict: proxy khasso y-load sit dyalek kamel"""
+    try:
+        proxies_dict = {"http": f"http://{proxy}", "https": f"http://{proxy}"}
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/150.0.0.0 Safari/537.36",
+            "Accept-Language": "fr-FR,fr;q=0.9"
+        }
+        r = requests.get(TARGET_URL, proxies=proxies_dict, timeout=12, headers=headers, verify=False)
+        
+        if r.status_code == 200 and len(r.text) > 5000:
+            return True
+        return False
+    except:
+        return False
+
+def find_working_proxies(proxies_list, num_needed):
+    """L9a proxies khdamin men la liste"""
+    print(f"\n[*] Kantiest {len(proxies_list)} proxies bach n-l9aw {num_needed} khdamin...")
+    working = []
+    
+    for i, proxy_info in enumerate(proxies_list[:50], 1):
+        if len(working) >= num_needed:
+            break
+        
+        proxy = proxy_info['proxy']
+        country = proxy_info['country']
+        anonymity = proxy_info['anonymity']
+        
+        print(f"  [{i}] {proxy} ({country}, {anonymity})... ", end="")
+        if test_proxy_strict(proxy):
+            print("✅ NADI!")
+            working.append(proxy_info)
+        else:
+            print("❌")
+    
+    return working
+
+# ============================================
+# 4. STEALTH CHROME
+# ============================================
+def create_stealth_chrome(proxy, chrome_version):
+    options = uc.ChromeOptions()
+    options.add_argument(f'--proxy-server=http://{proxy}')
+    options.add_argument('--window-size=1920,1080')
+    options.add_argument('--start-maximized')
+    options.add_argument('--disable-notifications')
+    options.add_argument('--disable-popup-blocking')
+    options.add_argument('--disable-infobars')
+    options.add_argument('--ignore-certificate-errors')
+    options.add_argument('--no-first-run')
+    options.add_argument('--no-default-browser-check')
+    options.add_argument('--disable-blink-features=AutomationControlled')
+    
+    user_agents = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/150.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/150.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/150.0.0.0 Safari/537.36",
+    ]
+    options.add_argument(f'--user-agent={random.choice(user_agents)}')
+    
+    driver = uc.Chrome(options=options, version_main=chrome_version)
+    return driver
+
+# ============================================
+# 5. HUMAN BEHAVIOR
+# ============================================
+def human_behavior(driver):
+    print("    [*] Actions dyal bnadem...")
+    actions = ActionChains(driver)
+    time.sleep(random.uniform(2, 5))
+    
+    # Mouse movements
+    try:
+        body = driver.find_element(By.TAG_NAME, "body")
+        for _ in range(random.randint(5, 10)):
+            x = random.randint(-400, 400)
+            y = random.randint(-300, 300)
+            actions.move_to_element_with_offset(body, x, y).perform()
+            time.sleep(random.uniform(0.2, 0.8))
+    except: pass
+    
+    # Scroll progressif
+    current_pos = 0
+    for _ in range(random.randint(5, 10)):
+        current_pos += random.randint(80, 350)
+        driver.execute_script(f"window.scrollTo(0, {current_pos});")
+        time.sleep(random.uniform(0.5, 2.5))
+        
+        if random.random() > 0.5:
+            time.sleep(random.uniform(1.5, 4.0))
+            
+            try:
+                elements = driver.find_elements(By.CSS_SELECTOR, "p, div, h1, h2, h3, img, a")
+                if elements:
+                    elem = random.choice(elements[:30])
+                    actions.move_to_element(elem).perform()
+                    time.sleep(random.uniform(0.5, 1.5))
+            except: pass
+    
+    # Rje3 lfo9
+    driver.execute_script("window.scrollTo(0, 0);")
+    time.sleep(random.uniform(1.5, 3.0))
+    
+    # Scroll men jdid
+    for _ in range(random.randint(2, 5)):
+        driver.execute_script(f"window.scrollBy(0, {random.randint(100, 400)});")
+        time.sleep(random.uniform(0.8, 2.0))
+    
+    # Keyboard
+    try:
+        body = driver.find_element(By.TAG_NAME, "body")
+        body.send_keys(Keys.TAB)
+        time.sleep(random.uniform(0.3, 0.8))
+        body.send_keys(Keys.ARROW_DOWN)
+        time.sleep(random.uniform(0.3, 0.8))
+    except: pass
+    
+    # Hover 3la links
+    try:
+        links = driver.find_elements(By.TAG_NAME, "a")
+        if links:
+            for link in random.sample(links[:15], min(3, len(links[:15]))):
+                if link.is_displayed():
+                    actions.move_to_element(link).perform()
+                    time.sleep(random.uniform(0.5, 1.5))
+    except: pass
+    
+    time.sleep(random.uniform(2, 5))
+    print("    [✅] Actions salaw")
+
+# ============================================
+# 6. COOKIE CONSENT
+# ============================================
+def handle_cookies(driver):
+    print("    [*] Cookie consent...")
+    time.sleep(3)
+    
+    selectors = [
+        "//button[contains(text(),'OK')]",
+        "//button[contains(text(),'Accept')]",
+        "//button[contains(text(),'Accepter')]",
+        "//button[contains(text(),'Tout accepter')]",
+        "//button[contains(text(),'Agree')]",
+    ]
+    
+    for selector in selectors:
+        try:
+            for btn in driver.find_elements(By.XPATH, selector):
+                if btn.is_displayed() and btn.is_enabled():
+                    btn.click()
+                    print("    [✅] Clickit")
+                    time.sleep(2)
+                    return True
+        except: continue
+    
+    try:
+        for btn in driver.find_elements(By.TAG_NAME, "button"):
+            text = btn.text.strip().lower()
+            if any(w in text for w in ['ok', 'accept', 'accepter', 'agree']):
+                if btn.is_displayed():
+                    btn.click()
+                    return True
+    except: pass
+    
+    return False
+
+# ============================================
+# 7. SINGLE VISIT
+# ============================================
+def do_visit(proxy_info, chrome_version, visit_num):
+    proxy = proxy_info['proxy']
+    country = proxy_info['country']
+    
+    print(f"\n{'='*60}")
+    print(f"🚀 VISITE {visit_num}/{NUM_VISITS}")
+    print(f"   Proxy: {proxy}")
+    print(f"   Pays: {country}")
+    print(f"{'='*60}")
+    
+    driver = None
+    try:
+        driver = create_stealth_chrome(proxy, chrome_version)
+        
+        print(f"  [*] Dkhol l {TARGET_URL}...")
+        driver.get(TARGET_URL)
+        
+        handle_cookies(driver)
+        human_behavior(driver)
+        
+        print("  [*] Kanstna 8 secondes bach Analytics y-st9bel...")
+        time.sleep(8)
+        
+        print(f"  [✅] VISITE {visit_num} NJ7AT!")
+        return True
+        
+    except Exception as e:
+        print(f"  [❌] Erreur: {str(e)[:150]}")
+        return False
+    finally:
+        if driver:
+            try:
+                time.sleep(2)
+                driver.quit()
+            except: pass
+
+# ============================================
+# 8. MAIN
+# ============================================
+def main():
+    print("="*70)
+    print("🎯 PROXY EXTRACTOR + VISITOR")
+    print("="*70)
+    print(f"Source: {PROXY_SITE}")
+    print(f"Target: {TARGET_URL}")
+    print(f"Visites: {NUM_VISITS}")
+    print("="*70)
+    
+    chrome_version = get_chrome_version()
+    
+    # 1. Extract proxies men site
+    all_proxies = extract_proxies_from_site()
+    if not all_proxies:
+        print("[❌] Ma l9it proxies!")
+        return
+    
+    # 2. L9a proxies khdamin
+    working_proxies = find_working_proxies(all_proxies, num_needed=NUM_VISITS)
+    
+    if not working_proxies:
+        print("\n[❌] Ma l9it 7ta proxy khdam!")
+        return
+    
+    print(f"\n[✅] L9ina {len(working_proxies)} proxies khdamin")
+    
+    # 3. Dir visites
+    success_count = 0
+    for i, proxy_info in enumerate(working_proxies, 1):
+        if do_visit(proxy_info, chrome_version, i):
+            success_count += 1
+        
+        if i < len(working_proxies):
+            pause = random.uniform(5, 15)
+            print(f"\n  [*] Pause {pause:.1f} secondes...")
+            time.sleep(pause)
+    
+    # Résumé
+    print("\n" + "="*70)
+    print(f"🎉 SALINA! {success_count}/{NUM_VISITS} visites nj7aw!")
+    print("="*70)
+    print("Sir chouf Google Analytics dyalek!")
+    print("="*70)
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n[⚠️] Stop by user")
+    except Exception as e:
+        print(f"\n[❌] Fatal error: {e}")
+    finally:
+        try:
+            sys.exit(0)
+        except SystemExit:
+            os._exit(0)

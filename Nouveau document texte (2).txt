@@ -1,0 +1,2526 @@
+import tkinter as tk
+from tkinter import ttk, messagebox, scrolledtext, filedialog
+import json
+import os
+import re
+from datetime import datetime
+import pickle
+import webbrowser
+import threading
+import traceback
+import time
+
+# ==========================================
+# 1. إعدادات Blogger (متعددة المدونات)
+# ==========================================
+BLOGGER_CONFIGS = {
+    "main": {
+        "name": "المدونة الرئيسية - Saad Live",
+        "blog_id": "5612271200026207833",
+        "credentials_file": "credentials(3).json",
+        "token_file": "token(3).json",
+        "base_url": "https://www.saad-match.opik.net/",
+        "active": True,
+        "group": "primary"
+    },
+    "live": {
+        "name": "مدونة البث المباشر - Live",
+        "blog_id": "5438717985522555174",
+        "credentials_file": "credentials(4).json",
+        "token_file": "token(4).json",
+        "base_url": "https://www.saad-live.com/",
+        "active": True,
+        "group": "live"
+    }
+}
+
+# ==========================================
+# 2. إعلانات Adsterra
+# ==========================================
+ADSTERRA_ADS = {
+    "top_banner": """
+    <div class="ad-container ad-top">
+        <script>
+          atOptions = {
+            'key' : 'b58516931db6e6713a3db3d6e402c7e1',
+            'format' : 'iframe',
+            'height' : 90,
+            'width' : 728,
+            'params' : {}
+          };
+        </script>
+        <script src="https://www.highperformanceformat.com/b58516931db6e6713a3db3d6e402c7e1/invoke.js"></script>
+    </div>
+    """,
+    "middle_square": """
+    <div class="ad-container ad-middle">
+        <script>
+          atOptions = {
+            'key' : 'ad0330a6addd8725919e56bfc63df147',
+            'format' : 'iframe',
+            'height' : 250,
+            'width' : 300,
+            'params' : {}
+          };
+        </script>
+        <script src="https://www.highperformanceformat.com/ad0330a6addd8725919e56bfc63df147/invoke.js"></script>
+    </div>
+    """,
+    "bottom_mobile": """
+    <div class="ad-container ad-bottom">
+        <script>
+          atOptions = {
+            'key' : 'e36744c6a865adfe938b4707656542f9',
+            'format' : 'iframe',
+            'height' : 50,
+            'width' : 320,
+            'params' : {}
+          };
+        </script>
+        <script src="https://www.highperformanceformat.com/e36744c6a865adfe938b4707656542f9/invoke.js"></script>
+    </div>
+    """
+}
+
+# ==========================================
+# 3. شعارات الفرق
+# ==========================================
+TEAM_LOGOS = {
+  "السنغال": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/24/Senegal2018_7_24_14_48.jpg",
+  "مالي": "https://media.gemini.media/img/yallakora/IOSTeams//120//2024/2/21/mali12024_2_21_19_50.jpg",
+  "غينيا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2022/8/3/guinea12022_8_3_19_51.jpg",
+  "ليبيا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2024/2/21/libya12024_2_21_19_56.jpg",
+  "مصر": "https://media.gemini.media/img/yallakora/IOSTeams//120//2022/8/3/egypt12022_8_3_16_40.jpg",
+  "أوغندا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2022/8/3/uganda12022_8_3_17_34.jpg",
+  "أنجولا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2022/8/3/angola12022_8_3_19_38.jpg",
+  "جنوب السودان": "https://media.gemini.media/img/yallakora/IOSTeams//120//2022/8/3/south_sudan12022_8_3_17_59.jpg",
+  "إنبي": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/24/Enppi2018_7_24_13_29.jpg",
+  "وادي دجلة": "https://media.gemini.media/img/yallakora/IOSTeams//120//2019/2/18/WadiDegla2019_2_18_10_17.jpg",
+  "غزل المحلة": "https://media.gemini.media/img/yallakora/IOSTeams//120//2024/9/11/ghazel12024_9_11_21_58.jpg",
+  "سموحة": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/24/Smouha2018_7_24_13_32.jpg",
+  "أستون فيلا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v4/Competitors/109",
+  "نيوكاسل": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v4/Competitors/116",
+  "برايتون": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v2/Competitors/38",
+  "فولهام": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/120",
+  "سندرلاند": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/117",
+  "وست هام يونايتد": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v7/Competitors/113",
+  "توتنهام هوتسبر": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v6/Competitors/114",
+  "بيرنلي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v3/Competitors/12",
+  "وولفرهامبتون": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v5/Competitors/15",
+  "مانشستر سيتي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/110",
+  "مايوركا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/142",
+  "برشلونة": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/132",
+  "فالنسيا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/139",
+  "ريال سوسيداد": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/154",
+  "ألافيس": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/168",
+  "ليفانتي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/150",
+  "لانس": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/9/10/Lens2018_9_10_13_11.jpg",
+  "ليون": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/29/Lyon2018_7_29_17_11.jpg",
+  "موناكو": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/29/Monaco2018_7_29_17_13.jpg",
+  "لوهافر": "https://www.yallakora.com/pictures/TeamLogo/lehavre.png",
+  "نيس": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/29/Nice2018_7_29_17_14.jpg",
+  "تولوز": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/29/Toulouse2018_7_29_17_15.jpg",
+  "شتوتجارت": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/29/Stuttgart2018_7_29_16_4.jpg",
+  "بايرن ميونيخ": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/29/BayernMunchen2018_7_29_16_3.jpg",
+  "كوجالي سبور": "https://media.gemini.media/img/yallakora/IOSTeams//120//2025/8/1/Kocaelispor12025_8_1_16_31.webp",
+  "سامسون سبور": "https://media.gemini.media/img/yallakora/IOSTeams//120//2023/8/4/Samsunspor12023_8_4_21_39.jpg",
+  "ألانيا سبور": "https://media.gemini.media/img/yallakora/IOSTeams//120//2021/7/15/Alanyaspor2021_7_15_15_38.jpg",
+  "ريزه سبور": "https://media.gemini.media/img/yallakora/IOSTeams//120//2021/2/13/Rizespor12021_2_13_23_36.jpg",
+  "جوزتيبي": "https://media.gemini.media/img/yallakora/IOSTeams//120//2021/2/13/Goztepe-12021_2_13_23_51.jpg",
+  "فنربخشة": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/8/12/Fenerbahce2018_8_12_13_1.jpg",
+  "تونديلا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/30/Tondela2018_7_30_10_25.jpg",
+  "فاماليكاو": "https://media.gemini.media/img/yallakora/IOSTeams//120//2020/3/16/Famalicao12020_3_16_19_44.jpg",
+  "فيتوريا جيماريش": "https://media.gemini.media/img/yallakora/IOSTeams//120//2021/9/5/Vitoria2021_9_5_18_41.jpg",
+  "إستوريل برايا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2015/3/23/Estoril2015_3_23_18_36.jpg",
+  "إستريلا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2023/11/22/72023_11_22_18_57.jpg",
+  "بنفيكا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/8/12/Benfica2018_8_12_13_8.jpg",
+  "شباب الأهلي": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/26/ShababAlAhliDubai2018_7_26_11_51.jpg",
+  "الظفرة": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/26/Alzafra2018_7_26_11_51.jpg",
+  "دبا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/26/Dibba2018_7_26_11_53.jpg",
+  "الشــارقة": "https://media.gemini.media/img/yallakora/IOSTeams//120//2021/9/7/SharjahFC2021_9_7_11_29.jpg",
+  "العين": "https://media.gemini.media/img/yallakora/IOSTeams//120//2024/10/29/21502024_10_29_19_14.jpg",
+  "البطائح": "https://media.gemini.media/img/yallakora/IOSTeams//120//2024/11/21/al-bataeh2024_11_21_17_1.jpg",
+  "اتحاد كلباء": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/26/EtihadKalba2018_7_26_11_52.jpg",
+  "النصر الإماراتي": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/26/AlNasr2018_7_26_11_50.jpg",
+  "البنزرتي": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/25/Binzertin2018_7_25_15_53.jpg",
+  "الصفاقســــي": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/25/Sfaxien2018_7_25_15_27.jpg",
+  "الترجي الجرجيسي": "https://www.yallakora.com/pictures/TeamLogo/AlTaraggiAlGergesi6-10-2010-21-22-21.png",
+  "شبيبة العمران": "https://media.gemini.media/img/yallakora/IOSTeams/YK-Generic-team-logo.png",
+  "النجم الساحلى": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/8/18/EtoileDuSahel2018_8_18_21_33.jpg",
+  "الافريقي التونسي": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/24/Africain2018_7_24_12_32.jpg",
+  "الملعب التونسي": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/25/AlmalaabTunisien2018_7_25_15_54.jpg",
+  "شبيبة القيروان": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/25/ChbebtKairawan2018_7_25_15_55.jpg",
+  "الدحيل": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/26/AlDuhail2018_7_26_12_12.jpg",
+  "الشحانية": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/26/Shahaniya2018_7_26_12_15.jpg",
+  "السد القطري": "https://media.gemini.media/img/yallakora/IOSTeams//120//2021/9/7/AlSadd2021_9_7_11_27.jpg",
+  "نادي قطر": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/26/QatarSC2018_7_26_12_13.jpg",
+  "روما": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v5/Competitors/225",
+  "نادي نيوم": "https://media.gemini.media/img/yallakora/IOSTeams//120//2024/7/21/neom2024_7_21_16_52.jpg",
+  "إنتر ميلان": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/224",
+  "أوليمبياكوس": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/9/13/Olympiacos2018_9_13_12_40.jpg",
+  "أتالانتا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v5/Competitors/232",
+  "يوفنتوس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v26/Competitors/226",
+  "تونس": "https://media.gemini.media/img/yallakora/IOSTeams//120//2022/8/3/tunisia12022_8_3_19_15.jpg",
+  "مدغشقر": "https://media.gemini.media/img/yallakora/IOSTeams//120//2024/2/21/madagascar12024_2_21_20_0.jpg",
+  "كاب فيردي": "https://media.gemini.media/img/yallakora/IOSTeams//120//2022/8/3/cape_verde12022_8_3_17_24.jpg",
+  "رواندا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2022/8/3/rwanda12022_8_3_19_27.jpg",
+  "نيجيريا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2022/8/3/nigeria12022_8_3_17_30.jpg",
+  "كوت ديفوار": "https://media.gemini.media/img/yallakora/IOSTeams//120//2023/8/16/Ivory-Coast12023_8_16_21_57.jpg",
+  "الكاميرون": "https://media.gemini.media/img/yallakora/IOSTeams//120//2022/8/3/cameroon12022_8_3_19_22.jpg",
+  "الكونغو الديمقراطية": "https://media.gemini.media/img/yallakora/IOSTeams//120//2022/8/3/democratic_republic_of_the_congo12022_8_3_16_51.jpg",
+  "نوتينجهام فورست": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v5/Competitors/29",
+  "برينتفورد": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/63",
+  "تشيلسي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/106",
+  "كريستال بالاس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/10",
+  "مانشستر يونايتد": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/105",
+  "أرسنال": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v6/Competitors/104",
+  "سيلتا فيجو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/158",
+  "خيتافي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/140",
+  "أتلتيك بلباو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v5/Competitors/144",
+  "اشبيلية": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v8/Competitors/135",
+  "اسبانيول": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v4/Competitors/136",
+  "اتلتيكو مدريد": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v6/Competitors/134",
+  "بريست": "https://media.gemini.media/img/yallakora/IOSTeams//120//2019/7/14/StadeBrestois2019_7_14_16_43.jpg",
+  "ليل": "https://media.gemini.media/img/yallakora/IOSTeams//120//2021/9/5/Lille2021_9_5_15_50.jpg",
+  "أنجيه": "https://media.gemini.media/img/yallakora/IOSTeams//120//2021/9/5/Angers2021_9_5_15_15.jpg",
+  "نادي باريس": "https://media.gemini.media/img/yallakora/IOSTeams//120//2023/1/28/Paris_FC_logo.svg2023_1_28_18_18.jpg",
+  "ميتز": "https://media.gemini.media/img/yallakora/IOSTeams//120//2021/9/5/Metz2021_9_5_15_4.jpg",
+  "ستراسبورج": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/29/Strasburg2018_7_29_17_17.jpg",
+  "اوكسير": "https://www.yallakora.com/pictures/TeamLogo/Auxerre21-10-2010-13-40-47.png",
+  "لوريان": "https://media.gemini.media/img/yallakora/IOSTeams//120//2015/3/23/Lorient2015_3_23_18_7.jpg",
+  "نانت": "https://media.gemini.media/img/yallakora/IOSTeams//120//2021/9/5/Nantes2021_9_5_14_49.jpg",
+  "باريس سان جيرمان": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/29/PSG2018_7_29_17_12.jpg",
+  "جنتشلربيرليجي": "https://media.gemini.media/img/yallakora/IOSTeams//120//2021/7/15/Genclerbirligi2021_7_15_16_19.jpg",
+  "انطاليا سبور": "https://media.gemini.media/img/yallakora/IOSTeams//120//2021/7/15/Antalyaspor2021_7_15_15_33.jpg",
+  "قونيا سبور": "https://media.gemini.media/img/yallakora/IOSTeams//120//2021/7/15/Konyaspor2021_7_15_15_34.jpg",
+  "غازي عنتاب بي.بي.كي": "https://media.gemini.media/img/yallakora/IOSTeams//120//2021/7/15/Gaziantep2021_7_15_15_45.jpg",
+  "إسطنبول باشاكشهير": "https://media.gemini.media/img/yallakora/IOSTeams//120//2021/7/14/IstanbulBasaksehir2021_7_14_17_28.jpg",
+  "قيصري سبور": "https://media.gemini.media/img/yallakora/IOSTeams//120//2021/7/15/Kayserispor2021_7_15_16_16.jpg",
+  "بشكتاش": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/9/13/Besiktas2018_9_13_12_40.jpg",
+  "ايوبسبور": "https://media.gemini.media/img/yallakora/IOSTeams//120//2024/8/15/nZORQJAr-tnyYwm3e2024_8_15_22_57.jpg",
+  "ريو آفي": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/30/RioAve2018_7_30_10_23.jpg",
+  "ناسيونال ماديرا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/30/Madeira2018_7_30_10_22.jpg",
+  "ألفيركا": "https://media.gemini.media/img/yallakora/IOSTeams/YK-Generic-team-logo.png",
+  "سبورتينج براجا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/30/SportingBraga2018_7_30_10_23.jpg",
+  "سانتا كلارا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/30/SantaClara2018_7_30_10_27.jpg",
+  "موريرنسي": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/30/Moreirense2018_7_30_10_24.jpg",
+  "سبورتينج لشبونة": "https://media.gemini.media/img/yallakora/IOSTeams//120//2020/8/5/Sporting-CP-Lisbon12020_8_5_16_42.jpg",
+  "أروكا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2015/3/23/Arouca2015_3_23_18_40.jpg",
+  "عجمان": "https://media.gemini.media/img/yallakora/IOSTeams//120//2021/9/8/AjmanClub2021_9_8_10_19.jpg",
+  "الوحـــدة": "https://media.gemini.media/img/yallakora/IOSTeams//120//2019/3/12/AlWahda2019_3_12_9_56.jpg",
+  "خورفكان": "https://media.gemini.media/img/yallakora/IOSTeams//120//2021/9/8/Khorfakkan2021_9_8_10_22.jpg",
+  "الجــزيرة": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/25/AlJazira2018_7_25_14_59.jpg",
+  "الوصل": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/25/Alwasl2018_7_25_15_22.jpg",
+  "بني ياس": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/26/BaniYas2018_7_26_11_52.jpg",
+  "الجزائر": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/26/Algeria2018_7_26_19_30.jpg",
+  "البحرين": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/26/Bahrain2018_7_26_19_14.jpg",
+  "السعودية": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/24/Saudi2018_7_24_14_46.jpg",
+  "الإمارات": "https://media.gemini.media/img/yallakora/IOSTeams//120//2021/9/8/UnitedArabEmirates2021_9_8_16_51.jpg",
+  "أوزبكستان": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/26/Uzbekistan2018_7_26_19_14.jpg",
+  "عمان": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/26/Oman2018_7_26_19_13.jpg",
+  "الأردن": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/26/Jordan2018_7_26_19_15.jpg",
+  "الكويت": "https://www.yallakora.com/pictures/TeamLogo/Flag-of-Kuwait20-10-2010-19-21-4.png",
+  "فلسطين": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/26/Palestine2018_7_26_19_16.jpg",
+  "كوريا الشمالية": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/26/NorthKorea2018_7_26_19_15.jpg",
+  "قيرجيزستان": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/26/Kyrgyzstan2018_7_26_19_17.jpg",
+  "قطر": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/26/Qatar2018_7_26_19_13.jpg",
+  "إيران": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/24/Iran2018_7_24_14_47.jpg",
+  "العراق": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/26/Iraq2018_7_26_19_14.jpg",
+  "كوريا الجنوبية": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/24/Korea2018_7_24_14_45.jpg",
+  "أبو قير للاسمدة": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/10/9/AboKeer2018_10_9_12_13.jpg",
+  "طنطا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/31/Tanta2018_7_31_16_51.jpg",
+  "مسار": "https://media.gemini.media/img/yallakora/IOSTeams//120//2025/8/6/Screenshot%202025-08-06%20172011_Easy-Resize.com2025_8_6_17_21.webp",
+  "راية الرياضي": "https://media.gemini.media/img/yallakora/IOSTeams//120//2023/5/4/82023_5_4_17_57.jpg",
+  "مالية كفر الزيات": "https://media.gemini.media/img/yallakora/IOSTeams//120//2025/8/6/Screenshot%202025-08-06%20171737_Easy-Resize.com2025_8_6_17_19.webp",
+  "المصرية للاتصالات": "https://www.yallakora.com/pictures/TeamLogo/itsalaat7-11-2008-16-13-52.png",
+  "الداخلية": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/24/Eldakhleya2018_7_24_13_32.jpg",
+  "لافيينا أف سي": "https://media.gemini.media/img/yallakora/IOSTeams//120//2021/9/7/LaVienaFC2021_9_7_13_43.jpg",
+  "الانتاج الحربي": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/24/AlentagAlharby2018_7_24_13_33.jpg",
+  "بترول أسيوط": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/31/PetrolAsyut2018_7_31_16_52.jpg",
+  "السكة الحديد مودرن": "https://media.gemini.media/img/yallakora/IOSTeams//120//2024/11/20/elseka2024_11_20_16_42.jpg",
+  "المنصورة": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/10/9/Mansoura2018_10_9_12_45.jpg",
+  "كازاخستان": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/9/12/Kazakhstan2018_9_12_12_38.jpg",
+  "ويلز": "https://media.gemini.media/img/yallakora/IOSTeams//120//2024/3/21/1JjnDm6Es30LryHzbudyEw_96x962024_3_21_0_45.jpg",
+  "جورجيا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/9/12/Georgia2018_9_12_12_39.jpg",
+  "تركيا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/9/10/Turkey2018_9_10_18_33.jpg",
+  "ليتوانيا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/9/10/Lithuania2018_9_10_18_27.jpg",
+  "مالطة": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/9/12/Malta2018_9_12_12_40.jpg",
+  "هولندا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/9/10/Netherlands2018_9_10_18_32.jpg",
+  "بولندا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/24/Poland2018_7_24_14_37.jpg",
+  "بلغاريا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/9/10/Bulgaria2018_9_10_18_31.jpg",
+  "إسبانيا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/24/Spain2018_7_24_14_42.jpg",
+  "لوكسمبرج": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/9/10/Luxemborg2018_9_10_18_26.jpg",
+  "إيرلندا الشمالية": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/9/10/NorthernIreland2018_9_10_18_30.jpg",
+  "سلوفاكيا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/9/10/Slovakia2018_9_10_18_33.jpg",
+  "ألمانيا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/24/Germany2018_7_24_14_43.jpg",
+  "ليشتنشتاين": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/9/12/Liechtenstein2018_9_12_12_41.jpg",
+  "بلجيكا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/24/Belgium2018_7_24_14_44.jpg",
+  "الأرجنتين": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/24/Argentina2018_7_24_14_45.jpg",
+  "كولومبيا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2025/6/6/colombia_square_icon_6402025_6_6_19_11.webp",
+  "إكوادور": "https://media.gemini.media/img/yallakora/IOSTeams//120//2019/3/20/Ecuador2019_3_20_18_44.jpg",
+  "مولدوفا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/9/10/Moldova2018_9_10_18_31.jpg",
+  "باتشوكا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2025/6/1/12025_6_1_17_11.webp",
+  "النصر": "https://upload.wikimedia.org/wikipedia/en/8/8e/Al_Nassr_BC.png",
+  "الولايات المتحدة الأمريكية": "https://media.gemini.media/img/yallakora/IOSTeams//120//2025/5/31/united_states_of_america_square_icon_6402025_5_31_23_57.webp",
+  "أيسلندا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2025/6/6/iceland_square_icon_6402025_6_6_19_17.webp",
+  "سيراميكا كليوباترا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2021/9/5/CeramicaCleopatra2021_9_5_15_5.jpg",
+  "الإسماعيلي": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/24/Ismaily2018_7_24_13_30.jpg",
+  "النرويج": "https://media.gemini.media/img/yallakora/IOSTeams//2018/9/10/Norway2018_9_10_18_32.jpg",
+  "البنك الاهلي": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/31/AhlyBank2018_7_31_17_33.jpg",
+  "مقدونيا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/9/12/Macedonia2018_9_12_12_37.jpg",
+  "اندونيسيا": "https://www.yallakora.com/pictures/TeamLogo/Indonesia-7526-2-2012-14-43-29.png",
+  "الجبل الأسود": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/9/12/Montenegro2018_9_12_12_41.jpg",
+  "إيطاليا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/9/10/Italy2018_9_10_18_23.jpg",
+  "أوروجواي": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/24/Uruguay2018_7_24_14_42.jpg",
+  "أستراليا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/24/Australia2018_7_24_14_46.jpg",
+  "فنزويلا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2019/3/20/Venezuela2019_3_20_18_45.jpg",
+  "بيرو": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/24/Peru2018_7_24_14_38.jpg",
+  "الكيان الصهيوني": "https://media.gemini.media/img/yallakora/IOSTeams//120//2022/9/15/YK-Generic-team-logo2022_9_15_21_43.jpg",
+  "التشيك": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/9/10/Czech2018_9_10_18_34.jpg",
+  "صربيا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/24/Serbia2018_7_24_14_44.jpg",
+  "لاتفيا": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/9/12/Latvia2018_9_12_12_40.jpg",
+  "المجر": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/9/10/Hungary2018_9_10_18_26.jpg",
+  "قبرص": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/9/12/Cyprus2018_9_12_12_41.jpg",
+  "إتحاد بن قردان": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/24/EtihadBenKerdan2018_7_24_12_59.jpg",
+  "الحزم": "https://media.gemini.media/img/yallakora/IOSTeams//120//2023/8/11/al-hazem12023_8_11_17_21.jpg",
+  "الهلال": "https://media.gemini.media/img/yallakora/IOSTeams//120//2024/8/13/11142024_8_13_20_18.jpg",
+  "زد": "https://media.gemini.media/img/yallakora/IOSTeams//120//2024/8/27/470102024_8_27_17_31.jpg",
+  "بروكسي": "https://media.gemini.media/img/yallakora/IOSTeams//120//2023/5/4/42023_5_4_17_47.jpg",
+  "أسوان": "https://media.gemini.media/img/yallakora/IOSTeams//120//2020/12/17/Aswan2020_12_17_17_49.jpg",
+  "القناة": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/10/9/AlQanah2018_10_9_12_34.jpg",
+  "باير ليفركوزن": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/29/BayerLeverkusen2018_7_29_16_6.jpg",
+  "آ. فرانكفورت": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/29/Frankfurt2018_7_29_16_5.jpg",
+  "الشباب": "https://media.gemini.media/img/yallakora/IOSTeams//120//2024/11/27/Al-Shabab-Logo2024_11_27_20_14.jpg",
+  "الاتحاد السكندري": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/24/Alittihad2018_7_24_13_30.jpg",
+  "السويد": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/24/Sweden2018_7_24_14_43.jpg",
+  "الوكرة": "https://media.gemini.media/img/yallakora/IOSTeams//120//2021/9/8/AlWakrah2021_9_8_10_31.jpg",
+  "الخلود": "https://media.gemini.media/img/yallakora/IOSTeams//120//2024/10/4/AlkholoodClub2024_10_4_22_48.jpg",
+  "كولن": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/9/12/Koln2018_9_12_13_9.jpg",
+  "فاركو": "https://media.gemini.media/img/yallakora/IOSTeams//120//2021/10/26/Pharco2021_10_26_8_28.jpg",
+  "المقاولون العرب": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/7/24/Mokawloon2018_7_24_13_30.jpg",
+  "الإتحاد المنستيري": "https://media.gemini.media/img/yallakora/IOSTeams//120//2018/9/16/Monastir2018_9_16_10_18.jpg",
+  "ريال أوفييدو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/193",
+  "نهضة بركان": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v4/Competitors/9974",
+  "النادي المكناسي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/8677",
+  "المغرب الفاسي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/8321",
+  "حسنية أكادير": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/8323",
+  "اتحاد تواركة": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v5/Competitors/14597",
+  "الكوكب المراكشي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/8209",
+  "الوداد البيضاوي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/8326",
+  "نهضة الزمامرة": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/49266",
+  "الرجاء البيضاوي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/8204",
+  "الفتح الرباطي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/8206",
+  "الجيش الملكي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v6/Competitors/5455",
+  "أولمبيك الدشيرة": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v6/Competitors/21191",
+  "أولمبيك آسفي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/8210",
+  "اتحاد طنجة": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/14596",
+  "الدفاع الحسني الجديدي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/8203",
+  "اتحاد يعقوب المنصور": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/82477",
+  "ليفربول": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v22/Competitors/108",
+  "ليدز يونايتد": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v4/Competitors/36",
+  "إيفرتون": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/107",
+  "بورنموث": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v4/Competitors/50",
+  "رايو فاييكانو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/174",
+  "فياريال": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/133",
+  "إلتشي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/156",
+  "ريال بيتيس": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/146",
+  "أوساسونا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v6/Competitors/143",
+  "ريال مدريد": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v4/Competitors/131",
+  "جيرونا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/175",
+  "ميلان": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v6/Competitors/227",
+  "فيورنتينا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/228",
+  "أودينيزي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/229",
+  "جنوى": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/231",
+  "نابولي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v8/Competitors/234",
+  "تورينو": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/235",
+  "لاتسيو": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/236",
+  "بارما": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/241",
+  "بولونيا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/245",
+  "كالياري": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/243",
+  "بيسا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/248",
+  "ساسولو": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/266",
+  "كريمونيسي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/290",
+  "هيلاس فيرونا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/316",
+  "كومو": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/6117",
+  "ليتشي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/246",
+    
+      "إسبانيول": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v4/Competitors/136",
+
+     
+     "سبارتاك ترنافا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/2110",
+"ترنسين": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/2118",
+"سلوفان براتيسلافا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/2112",
+"جيلينا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/2108",
+"زيمبلين": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/2138",
+"بودبريزوفا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/2133",
+"دونايسكا ستريدا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/2119",
+"MFK Skalica": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/13792",
+"تاتران بريشوف": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/2120",
+"كوشيتسى": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/2111",
+"Komarno": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/26231",
+"روجومبيروك": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/2113",
+     
+  "فلومينينسي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1216",
+  "أونسى كالداس": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v6/Competitors/7289",
+  "يونيون اسبانيولا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1233",
+  "Gualberto Villarroel SJ": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/74521",
+  "لانوس": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/869",
+  "فاسكو دي غاما": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/1227",
+  "Boston River": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v9/Competitors/12673",
+  "ميلغار": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v5/Competitors/8413",
+  "Puerto Cabello": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/25559",
+  "سيينسيانو كوسكو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/8412",
+  "أتليتيكو مينيرو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/1209",
+  "كاراكاس": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/8686",
+  "ديبورتيس إيكيكي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/8410",
+  "ناسيونال بوتوزي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/9065",
+  "الجامعة الكاثوليكية": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/10197",
+  "Cerro Largo": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/8618",
+  "فيتوريا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v6/Competitors/1228",
+  "ديفينسا يي جوستيسيا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/7217",
+  "إنديبيندنتي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/874",
+  "أوراكان": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/884",
+  "أمريكا دي كالي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/8645",
+  "كورينثيانز": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/1267",
+  "Racing Club Montevideo": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/7087",
+  "غودوي كروز": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/873",
+  "غريميو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v6/Competitors/1218",
+  "اتليتيكو غراو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/50540",
+  "سبورتيفو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/8778",
+  "غواراني": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/7739",
+  "موشوك رونا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/18814",
+  "باليستينو سانتياغو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1238",
+  "كروزيرو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v4/Competitors/1213",
+  "Union Santa Fe": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/7206",
+     
+     "الغرافة": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/6993",
+"الريان": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/7077",
+"الشمال": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/7081",
+"قطر": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v5/Competitors/7086",
+"العربي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/7084",
+"الوكرة": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/5996",
+"الشحانية": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/16647",
+"الدحيل": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/8329",
+"السد": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/6992",
+"أم صلال": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/7082",
+"السيلية": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/6991",
+"الأهلي قطري": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/7085",
+     
+  "ليغا كيتو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/1282",
+  "إنديبيندينت سانيولكي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v8/Competitors/9142",
+  "برشلونة غواياكيل": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v5/Competitors/9130",
+  "ديبورتيفو كوينكا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v13/Competitors/7281",
+  "Libertad": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v5/Competitors/69463",
+  "أوكاس كيتو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/14201",
+  "Orense SC": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/51520",
+  "الجامعة الكاثوليكية": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/10197",
+  "ايميلك": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/7203",
+  "ناسيونال كيتو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/9047",
+  "ديلفين": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/19160",
+  "ماكارا أمباتو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/9140",
+  "مانتا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v5/Competitors/9143",
+  "أمباتو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/9141",
+  "Vinotinto del Ecuador FC": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/86081",
+  "موشوك رونا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/18814",
+
+     
+     
+  "شامروك روفرز": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/838",
+  "بوهيميانز": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/836",
+  "ديري سيتي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/840",
+  "دروغيدا يونايتد": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/10381",
+  "شيلبورن": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/849",
+  "باتريكس أثليتيك": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/835",
+  "واترفورد يونايتد": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/847",
+  "غالواي يونايد": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/841",
+  "سيلغو روفرز": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/839",
+  "كورك سيتي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/837",
+     
+     "سانت جوزيفس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/16044",
+"Mons Calpe": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/28894",
+"Lynx FC": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/16040",
+"لينكولن ريد امبس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/16037",
+"مانشستر يونايتد طارق": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/16038",
+"كوسموس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/16041",
+"ليونز": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/16043",
+"ماغبيس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/28885",
+"غليسيس يونايتد": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/16042",
+"College 1975 FC": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/28896",
+"كوليج كوزمو": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/28893",
+     
+  "PAOK B": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/68991",
+  "كافالا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v4/Competitors/1072",
+  "نيكي فولوس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/10001",
+  "دياغوراس رودوس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/1073",
+  "إيثنيكوس نيو": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/53671",
+  "بانارجييكوس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/15268",
+  "Asteras Tripolis B": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/83368",
+  "Aek Athens Fc B": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/68994",
+  "باناخيكي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/8679",
+  "لاريسا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/1030",
+  "إيراكليس سالونيكي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1033",
+  "جيانينا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1057",
+  "كامبانياكوس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/15263",
+  "كيفيسيا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v4/Competitors/15266",
+  "كلاماتا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1066",
+  "بانثونيكوس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1028",
+  "إجاليو": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1068",
+  "إليوبوليس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/6299",
+     
+  "باناثينيكوس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1022",
+  "أولمبياكوس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/1023",
+  "أيك أثينا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1024",
+  "آريس سالونيكي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1025",
+  "أستيراس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/1026",
+  "باوك سالونيكا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1029",
+  "أتروميتوس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1031",
+  "أوفي كريت": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1032",
+  "ليفادياكوس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1034",
+  "بانسيرايكوس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1038",
+  "بانيتوليكوس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/6206",
+  "فولوس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/54421",
+  "كيفيسيا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v4/Competitors/15266",
+  "لاريسا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/1030",
+     
+  "أوغسبورغ": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/358",
+  "باير ليفركوزن": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v5/Competitors/333",
+  "بايرن ميونخ": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/331",
+  "بوروسيا دورتموند": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/341",
+  "بوروسيا مونشنجلادباخ": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/349",
+  "آينتراخت فرانكفورت": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/337",
+  "كولن": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/350",
+  "فرايبورج": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/354",
+  "هامبورج": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/334",
+  "هايدينهايم": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/434",
+  "هوفنهايم": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/351",
+  "ماينز 05": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/352",
+  "لايبزيج": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/7171",
+  "سانت باولي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/359",
+  "شتوتجارت": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/338",
+  "يونيون برلين": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/392",
+  "فيردر بريمن": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/332",
+  "فولفسبورج": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v4/Competitors/339",
+  "موناكو": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v4/Competitors/471",
+  "ستاد رين": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/477",
+  "أولمبيك ليون": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v7/Competitors/465",
+  "تولوز": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/482",
+  "ستراسبورج": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/479",
+  "أنجيه": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v3/Competitors/493",
+  "أوكسير": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v2/Competitors/476",
+  "باريس سان جيرمان": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v3/Competitors/480",
+  "بريست": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v2/Competitors/534",
+  "ليل": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v2/Competitors/478",
+  "نانت": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v4/Competitors/486",
+  "لوريان": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/472",
+  "باريس أف.سي.": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/6075",
+  "ميتز": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v4/Competitors/484",
+  "نيس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/470",
+  "لانس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/481",
+  "أولمبيك مارسيليا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/469",
+  "لو آفر": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/485",
+     
+     
+  "كوريتيبا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/1212",
+  "غوياس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v2/Competitors/1217",
+  "شابيكوينسي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v2/Competitors/7387",
+  "Grêmio Novorizontino": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/23765",
+  "Remo": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/7383",
+  "CRB": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/1784",
+  "كريسيوما": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v6/Competitors/1780",
+  "كويابا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v3/Competitors/9188",
+  "أفاي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v2/Competitors/1777",
+  "فيلا نوفا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v2/Competitors/1782",
+  "بوتافوغو اس بي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v2/Competitors/1773",
+  "أتليتيكو باراناينسي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/1210",
+  "Ferroviária": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v3/Competitors/9182",
+  "أتليتيكو غويانيينسي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v5/Competitors/5918",
+  "Operário-PR": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v2/Competitors/9109",
+  "Athletic Club": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/67683",
+  "أمريكا مينيرو": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v2/Competitors/8514",
+  "Volta Redonda": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v5/Competitors/7068",
+  "Paysandu": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/7390",
+  "Amazonas FC": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v2/Competitors/57477",
+     
+     
+  "المصري": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v6/Competitors/8303",
+  "بيراميدز": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/22143",
+  "الأهلي مصري": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v20/Competitors/8200",
+  "زد": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/29732",
+  "الزمالك": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v5/Competitors/8201",
+  "مودرن سبورت": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/50877",
+  "إنبي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/8300",
+  "طلائع الجيش": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/8306",
+  "الجونة": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/8308",
+  "حرس الحدود": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/8307",
+  "الاتحاد السكندري": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/8312",
+  "بتروجت": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/8302",
+  "سموحة": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/8309",
+  "غزل المحلة": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/8610",
+  "كهرباء الاسماعيلية": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/19506",
+  "البنك الاهلي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/50527",
+  "وادي دجلة": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/8311",
+  "الإسماعيلي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/8299",
+  "سيراميكا كليوباترا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/50882",
+  "المقاولون العرب": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v6/Competitors/8310",
+  "فاركو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/46242",
+
+  "إندبندينتي ريفادافيا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/7227",
+  "ديفينسا يي جوستيسيا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/7217",
+  "إستوديانتيس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v8/Competitors/867",
+  "لانوس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/869",
+  "ريفر بليت": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/868",
+  "سان لورينزو": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/865",
+  "فيليز سارسفيلد": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/872",
+  "غودوي كروز": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/873",
+  "روزاريو سينترال": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v7/Competitors/875",
+  "نيويلز أولد بويز": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/877",
+  "ريسترا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/11940",
+  "جيمناشيا لا بلاتا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/880",
+  "أتلتيكو توكومان": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/6152",
+  "تاليريس كوردوبا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/9274",
+  "سارمينتو خنين": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/7117",
+  "بلاتينسي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/7207",
+  "أوراكان": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/884",
+  "سان مارتين سج": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/7208",
+  "إنديبيندنتي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/874",
+  "يونيون سانتا في": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/7206",
+  "بيلغرانو": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5783",
+  "سنترال كوردوبا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v4/Competitors/14057",
+  "تيجري الرياضي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/883",
+  "بانفيلد": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/878",
+  "بока جونيورز": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/866",
+  "أرجنتينوس جونيورز": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/871",
+  "انيستتوتو": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/7272",
+     
+  "الاتحاد": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v3/Competitors/8593",
+  "القادسية": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v4/Competitors/8947",
+  "الأهلي السعودي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v8/Competitors/8946",
+  "الشباب": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v4/Competitors/8945",
+  "الاتفاق": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v4/Competitors/8943",
+  "التعاون": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v3/Competitors/8941",
+  "الخلود": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v5/Competitors/55800",
+  "الفتح": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v2/Competitors/8942",
+  "الرياض": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v3/Competitors/12135",
+  "الخليج": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/12138",
+  "الفيحاء": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v4/Competitors/20733",
+  "ضمك": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v4/Competitors/24241",
+  "الأخدود": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v5/Competitors/55794",
+  "نيوم": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v2/Competitors/55793",
+  "النجمة": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v2/Competitors/24240",
+  "الحزم": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v3/Competitors/14895",
+     
+  "سانت لويس سيتي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v4/Competitors/24474",
+  "سياتيل ساونديرز": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/1347",
+  "لوس أنجلوس إف سي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/51178",
+  "دالاس": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1341",
+  "بورتلاند تيمبرز": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/5916",
+  "كولورادو رابيدز": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1340",
+  "لوس أنجلوس غالاكسي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1342",
+  "أوستن": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/67907",
+  "شيكاغو فاير": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v5/Competitors/1333",
+  "مونتريال امباكت": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v4/Competitors/9127",
+  "سان خوسيه إرثكويكس": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1345",
+  "ريال سولت ليك": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1344",
+  "مينيسوتا يونايتد": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/12208",
+  "هيوستن دينامو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/1346",
+  "أورلاندو سيتي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/12204",
+  "سبورتينغ كانساس سيتي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1335",
+  "ناشفيل": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/51126",
+  "انتر ميامي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/54729",
+  "كولومبوس كرو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/1334",
+  "شارلوت": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/69188",
+  "سينسيناتي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/25287",
+  "نيويورك سيتي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/20622",
+  "فيلادلفيا يونيون": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/7364",
+  "نيويورك ريد بولز": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1338",
+  "تورونتو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/1336",
+  "أتلانتا يونايتد": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/30499",
+  "دي.سي. يونايتد": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1339",
+     
+  "نيميخين": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/700",
+  "آيندهوفن": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/725",
+  "فاينورد": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/691",
+  "زفولي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/710",
+  "ألكمار": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/699",
+  "أياكس": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v4/Competitors/690",
+  "أوتريخت": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/698",
+  "أن آي سي بريدا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/693",
+  "غرونينغين": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/692",
+  "سبارتا روتردام": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/702",
+  "غو أهيد إيغيلز": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/714",
+  "فولندام": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/707",
+  "فورتونا سيتارد": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/722",
+  "هيرنفين": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/694",
+  "تفينتي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/696",
+  "تيلستار": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/719",
+  "أكسيلسيور": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/705",
+  "هيراكليس": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/703",
+     
+  "ستوك سيتي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v4/Competitors/7",
+  "ميدلزبره": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/115",
+  "وست بروميتش": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5",
+  "بريستول سيتي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/6",
+  "كوفنتري سيتي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/24",
+  "بريستون نورث إند": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/23",
+  "بيرمينجهام": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/1",
+  "ساوثهامبتون": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/21",
+  "هال سيتي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/11",
+  "تشارلتون اثلتيك": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/8",
+  "ليستر سيتي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/22",
+  "نورويتش سيتي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/16",
+  "بورتسموث": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/111",
+  "واتفورد": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/4",
+  "سوانزي سيتي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v7/Competitors/28",
+  "ميلوال": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/45",
+  "إبسويتش تاون": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v4/Competitors/9",
+  "كوينز بارك رينجرز": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/18",
+  "ريكسهام": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/75",
+  "أوكسفورد يونايتد": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/87",
+  "بلاكبيرن روفرز": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/112",
+  "دربي كاونتي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/3",
+  "شيفيلد يونايتد": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v4/Competitors/20",
+  "شيفيلد وينزداي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/25",
+     
+  "سبورتنج لشبونة": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v4/Competitors/890",
+  "سبورتينج براغا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/895",
+  "بورتو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v4/Competitors/887",
+  "فاماليكاو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/11172",
+  "موريرنسي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/7573",
+  "بنفيكا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/888",
+  "جيل فيسنتي بارسيلوش": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/905",
+  "كازا بيا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/6372",
+  "فيتوريا غيماريش": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/889",
+  "آروكا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/927",
+  "ريو آفي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/904",
+  "إشتوريل برايا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/909",
+  "إستريلا دا أمادورا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/67143",
+  "ناسيونال": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/894",
+  "ألفيركا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/53811",
+  "فيلا فرانكنسي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/27176",
+  "سانتا كلارا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/935",
+  "تونديلا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/6470",
+     
+  "فلامنجو": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v5/Competitors/1215",
+  "غريميو": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v6/Competitors/1218",
+  "كروزيرو": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v4/Competitors/1213",
+  "إنترناسيونال": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/1219",
+  "بالميراس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1222",
+  "كورينثيانز": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/1267",
+  "فاسكو دي غاما": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/1227",
+  "فيتوريا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v6/Competitors/1228",
+  "جوفينتود": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/1775",
+  "فورتاليزا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v8/Competitors/1778",
+  "سبورت ريسيفي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v9/Competitors/1226",
+  "باهيا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/1767",
+  "بوتافوغو": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1211",
+  "ميراسول": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/1269",
+  "ساو باولو": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v5/Competitors/1225",
+  "فلومينينسي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1216",
+  "ريد بل براغانتينو": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/1273",
+  "سيارا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1781",
+  "أتليتيكو مينيرو": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/1209",
+  "سانتوس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v11/Competitors/1224",
+     
+  "سانت إيتيان": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v4/Competitors/474",
+  "باو": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v2/Competitors/500",
+  "أميان": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v3/Competitors/497",
+  "نانسي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v3/Competitors/467",
+  "تروا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/488",
+  "ستاد ريمس": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v4/Competitors/499",
+  "مونبلييه": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/491",
+  "لافال": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v2/Competitors/5434",
+  "كليرمون": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v2/Competitors/490",
+  "دنكارك": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v2/Competitors/522",
+  "باستيا": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v2/Competitors/489",
+  "لومان": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/468",
+  "جانجون": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v2/Competitors/496",
+  "غرينوبل": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/487",
+  "ريد ستار": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/8538",
+  "آنيسي": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v6/Competitors/16743",
+  "روديز": "https://imagecache.365scores.com/image/upload/f_png,w_68,h_68,c_limit,q_auto:eco,dpr_2,d_Competitors:default1.png/v1/Competitors/530",
+     
+  "أرمينيا بيليفيلت": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/345",
+  "دارمشتات": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/454",
+  "هانوفر": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/340",
+  "آينتراخت براونشفايش": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/401",
+  "بادربورن": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/366",
+  "كارلسروهر": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/336",
+  "غرويتر فورت": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/353",
+  "شالكة": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/335",
+  "ماغديبورغ": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/400",
+  "كايزرسلاوترن": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/364",
+  "بوخوم": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/343",
+  "إس في إلفيرسبيرج": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/418",
+  "مونستر": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/423",
+  "هرتا برلين": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/342",
+  "دينامو دريسدين": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/396",
+  "نورنبيرج": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/346",
+  "هولشتاين كيل": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/430",
+  "فورتونا دوسيلدورف": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/393",
+     
+  "باتشوكا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v5/Competitors/1250",
+  "مونتيري": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/1257",
+  "بوماس يونام": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1249",
+  "خواريز": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/25149",
+  "أطلس": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v5/Competitors/1258",
+  "غوادالاهارا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v8/Competitors/1259",
+  "بويبلا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1252",
+  "كويريتارو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v5/Competitors/5994",
+  "نيكاسا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v4/Competitors/1263",
+  "كروز أزول": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v4/Competitors/1261",
+  "كلوب أمريكا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v5/Competitors/1255",
+  "تولوكا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/2078",
+  "تيغريس": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/1264",
+  "نادي تيخوانا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/8508",
+  "سانتوس لاغونا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/1254",
+  "سان لويس": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/1260",
+  "نادي ليون": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v4/Competitors/9339",
+  "مازاتلان": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/66359",
+     
+  "بورغوس": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/180",
+  "بلد الوليد": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v10/Competitors/141",
+  "راسينج سانتاندير": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/137",
+  "ديبورتيفو لاكورونيا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/148",
+  "سبورتينج خيخون": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/153",
+  "ريال سوسيداد ب": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/9255",
+  "قادش": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/163",
+  "ألباثيتي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/170",
+  "ألميريا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/138",
+  "إيبار": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/164",
+  "مالقا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/152",
+  "هويسكا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/176",
+  "ليجانيس": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/9242",
+  "أندورا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/9256",
+  "لاس بالماس": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/167",
+  "قرطبة": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/165",
+  "ميراندس": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/8800",
+  "ريال سرقسطة": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/145",
+  "غرناطة": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/159",
+  "كاستييون": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/157",
+  "نادي سبتة": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/6144",
+  "ديبورتيفا ليونيسا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/6347",
+
+     
+  "أرمينيا بيليفيلت": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/345",
+  "دارمشتات": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/454",
+  "هانوفر": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/340",
+  "آينتراخت براونشفايش": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/401",
+  "بادربورن": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/366",
+  "كارلسروهر": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/336",
+  "غرويتر فورت": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/353",
+  "شالكة": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/335",
+  "ماغديبورغ": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/400",
+  "كايزرسلاوترن": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/364",
+  "بوخوم": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/343",
+  "إس في إلفيرسبيرج": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/418",
+  "مونستر": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/423",
+  "هرتا برلين": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/342",
+  "دينامو دريسدين": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/396",
+  "نورنبيرج": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/346",
+  "هولشتاين كيل": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/430",
+  "فورتونا دوسيلدورف": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/393",
+     
+     
+  "ستيفنيج": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/80",
+  "بارنزلي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/17",
+  "برادفورد سيتي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/64",
+  "هدرسفيلد تاون": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/41",
+  "لوتون تاون": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v4/Competitors/49",
+  "لينكولن": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/67",
+  "ستوكبورت": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/55",
+  "ليتون أورينت": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/35",
+  "دونكاستر": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/30",
+  "إكسيتر": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/77",
+  "مانسفيلد": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/74",
+  "ويجان أتلتيك": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/119",
+  "ويمبلدون": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/6054",
+  "بيرتون": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/81",
+  "بولتون وانديررز": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/118",
+  "كارديف سيتي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/14",
+  "ريدينغ": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/2",
+  "روذرهام": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/57",
+  "بلاكبول": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/19",
+  "بورت فيل": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/51",
+  "ويكومب": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/58",
+  "نورثهامبتون تاون": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/37",
+  "بيتربره": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/54",
+  "بليموث": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/13",
+    
+  "مصر": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/5100",
+  "بوركينا فاسو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5420",
+  "سيراليون": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5603",
+  "غينيا بيساو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/8444",
+  "أثيوبيا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5413",
+  "جيبوتي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5596",
+  "الكونغو الديمقراطية": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/14650",
+  "السنغال": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5102",
+  "السودان": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5099",
+  "موريتانيا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v6/Competitors/5599",
+  "توغو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5405",
+  "جنوب السودان": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/19417",
+  "جنوب أفريقيا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5103",
+  "بنين": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5098",
+  "منتخب رواندا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5408",
+  "نيجيريا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/2386",
+  "منتخب ليسوتو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5412",
+  "منتخب زيمبابوي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5417",
+  "الرأس الأخضر": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5411",
+  "الكاميرون": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/2387",
+  "ليبيا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5908",
+  "أنجولا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5105",
+  "موريشيوس": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5598",
+  "إسواتيني": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5605",
+  "المغرب": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5093",
+  "تنزانيا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5407",
+  "النيجر": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/8443",
+  "منتخب زامبيا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5101",
+  "جمهورية الكونغو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5110",
+  "إريتريا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/19850",
+  "كوت ديفوار": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/2385",
+  "الجابون": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5409",
+  "منتخب بوروندي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5600",
+  "منتخب غامبيا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5601",
+  "كينيا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5410",
+  "منتخب سيشل": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v4/Competitors/5602",
+  "الجزائر": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5109",
+  "أوغندا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5107",
+  "منتخب موزمبيق": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5418",
+  "غينيا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5095",
+  "منتخب بوتسوانا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5406",
+  "الصومال": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/27810",
+  "منتخب تونس": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5104",
+  "منتخب ناميبيا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5096",
+  "ليبيريا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5108",
+  "غينيا الاستوائية": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5419",
+  "منتخب مالاوي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/7051",
+  "ساو تومي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/9007",
+  "غانا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5094",
+  "مدغشقر": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5597",
+  "منتخب مالي": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5097",
+  "جزر القمر": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/8445",
+  "أفريقيا الوسطى": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/11226",
+  "تشاد": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5615",
+    
+    
+    
+    
+  "جورجيا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5066",
+  "تركيا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5047",
+  "إسبانيا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5050",
+  "بلغاريا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5062",
+  "أيرلندا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5064",
+  "لوكسمبورج": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5033",
+  "المجر": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5026",
+  "البرتغال": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5028",
+  "فنلندا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5045",
+  "بولندا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5038",
+  "هولندا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/2377",
+  "مالطا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5035",
+  "ليتوانيا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/2312",
+  "النمسا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v4/Competitors/5059",
+  "رومانيا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5060",
+  "سلوفاكيا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5039",
+  "مولدوفا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5031",
+  "إستونيا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5051",
+  "إيطاليا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v2/Competitors/2375",
+  "اسرائيل": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5034",
+  "ويلز": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5043",
+  "بلجيكا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/2373",
+  "ليختنشتاين": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5046",
+  "أندورا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5052",
+  "لاتفيا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/2300",
+  "صربيا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/2374",
+  "إنجلترا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5054",
+  "كرواتيا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v3/Competitors/5055",
+  "جمهورية التشيك": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5040",
+  "جبل طارق": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/12775",
+  "سلوفينيا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5041",
+  "سويسرا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5032",
+  "ألمانيا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/2372",
+  "كوسوفو": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/19414",
+  "روسيا البيضاء": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5053",
+  "أسكتلندا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5069",
+  "الدنمارك": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5027",
+  "فرنسا": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5061",
+  "أذربيجان": "https://imagecache.365scores.com/image/upload/f_png,w_24,h_24,c_limit,q_auto:eco,dpr_3,d_Competitors:default1.png/v1/Competitors/5042"
+}
+
+def get_team_logo(team_name):
+    """الحصول على شعار الفريق"""
+    clean_name = team_name.strip()
+    if clean_name in TEAM_LOGOS:
+        return TEAM_LOGOS[clean_name]
+    for key, logo in TEAM_LOGOS.items():
+        if key in clean_name or clean_name in key:
+            return logo
+    return f"https://via.placeholder.com/80?text={clean_name[:15]}"
+
+# ==========================================
+# 4. CSS الكامل
+# ==========================================
+FULL_MATCH_CSS = """
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cairo&display=swap');
+  body {
+    font-family: 'Cairo', sans-serif;
+    background: #f9f9f9;
+    padding: 0;
+    margin: 0;
+    direction: rtl;
+    color: #333;
+  }
+  .tabs-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 10px;
+  }
+  .tab-button {
+    padding: 10px 20px;
+    margin-right: 10px;
+    background-color: #900C3F;
+    cursor: pointer;
+    font-weight: bold;
+    border: 1px solid #999;
+    border-radius: 5px;
+    color: white;
+  }
+  .tab-button.active {
+    background-color: #581845;
+  }
+  .field-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 10px;
+  }
+  .field {
+    position: relative;
+    width: 150vw;
+    height: 55vh;
+    max-width: 400px;
+    max-height: 280px;
+    background: url('https://c.top4top.io/p_3645ihjh41.png') no-repeat center/contain;
+    border: 4px solid rgba(0, 0, 0, 0);
+    border-radius: 3px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  .player, .coach {
+    position: absolute;
+    width: 43px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  .player img, .coach img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+  }
+  .player-number {
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    background: linear-gradient(135deg, #f0f0f0, #d9d9d9);
+    color: #222;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    top: -3px;
+    right: -4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease-in-out;
+    z-index: 10;
+  }
+  .player-name {
+    position: absolute;
+    top: 103%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: black;
+    white-space: nowrap;
+    max-width: 100%;
+    overflow: visible;
+  }
+  .coach-name {
+    position: absolute;
+    top: 72%;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 2px 6px;
+    font-family: 'Poppins', 'Cairo', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #222;
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 20px;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.12);
+    white-space: nowrap;
+    opacity: 0;
+    animation: fadeInUp 0.5s ease forwards;
+    z-index: 10;
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translate(-50%, 6px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+  }
+  .baMatch {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-align: center;
+    padding: 15px 0;
+  }
+  .colmd { flex: 1; }
+  .ce { max-width: 80px; }
+  .teamlogo {
+    width: 80px; height: 80px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    margin: 0 auto 10px;
+    border-radius: 50%;
+    border: none;
+  }
+  .teamname {
+    font-size: 12px; font-weight: 600;
+    text-align: center; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+    max-width: 120px; display: inline-block;
+  }
+  .matchvs { font-size: 24px; font-weight: bold; color: #555; }
+  .TableMatch {
+    max-width: 700px; margin: 20px auto;
+    border: 1px solid #ddd; border-radius: 10px;
+    overflow: hidden;
+    background: linear-gradient(to right, #070708, #AEC51D, #151801);
+    box-sizing: border-box;
+  }
+  .TableMatch h3 {
+    background: linear-gradient(to right, #070708, #AEC51D, #151801);
+    color: white; padding: 15px; margin: 0;
+    font-size: 20px; border-radius: 10px 10px 0 0;
+  }
+  .TableMatch table { width: 100%; border-collapse: collapse; }
+  .TableMatch th, .TableMatch td {
+    padding: 12px; font-size: 16px;
+    border-bottom: 1px solid #f1f1f1; text-align: right;
+  }
+  .TableMatch th {
+    background: linear-gradient(to right, #AEC51D, #C5760A);
+    width: 30%;
+  }
+  .posts-content h2 { color: #d62828; font-size: 24px; margin-bottom: 15px; }
+  .posts-content h3 {
+    color: #003049; font-size: 20px; margin-top: 25px;
+    border-bottom: 2px solid #e63946; display: inline-block; padding-bottom: 5px;
+  }
+  .posts-content strong { color: #2a9d8f; }
+  .toggle-subs-btn {
+    display: block; margin: 15px auto 10px;
+    background: linear-gradient(135deg, #900C3F, #C70039);
+    color: white; border: none; padding: 10px 18px;
+    border-radius: 8px; font-weight: bold; cursor: pointer;
+    font-size: 0.95rem; box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    transition: background 0.3s ease, transform 0.2s ease; max-width: 240px;
+  }
+  .toggle-subs-btn:hover {
+    background: linear-gradient(135deg, #C70039, #900C3F);
+    transform: scale(1.03);
+  }
+  .subs-absents-overlay {
+    position: fixed; top: 10%; left: 50%;
+    transform: translateX(-50%); width: 90%; max-width: 850px;
+    padding: 30px 25px; background: rgba(25, 25, 25, 0.92);
+    backdrop-filter: blur(10px); border: 1px solid rgba(199, 0, 57, 0.6);
+    border-radius: 18px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+    font-family: 'Cairo', sans-serif; color: #fff; z-index: 9999;
+    display: none; animation: fadeIn 0.4s ease-out forwards;
+    overflow-y: auto; max-height: 85vh;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+  .subs-absents-section { margin-bottom: 20px; }
+  .subs-absents-section h4 {
+    font-size: 1.1rem; color: #fff;
+    background: linear-gradient(90deg, #900C3F, #C70039);
+    border-radius: 6px; padding: 8px 12px;
+    margin-bottom: 14px; display: inline-block;
+  }
+  .subs-absents-list {
+    display: flex; flex-wrap: wrap; gap: 15px; justify-content: start;
+  }
+  .subs-absents-player {
+    position: relative; width: 70px; text-align: center;
+  }
+  .subs-absents-player .photo {
+    width: 60px; height: 60px; border-radius: 50%;
+    border: 2px solid #fff; box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    object-fit: cover;
+  }
+  .subs-absents-player .number {
+    position: absolute; top: -6px; left: -6px;
+    background: #C70039; color: #fff; font-size: 12px;
+    width: 20px; height: 20px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: bold;
+  }
+  .subs-absents-player .name {
+    margin-top: 4px; font-size: 12px; color: #ddd;
+  }
+  #closeSubsBtn {
+    position: absolute; top: 12px; left: 12px;
+    background: linear-gradient(135deg, #900C3F, #C70039);
+    color: white; border: none; padding: 8px 14px;
+    border-radius: 8px; cursor: pointer; font-weight: 700;
+    font-size: 0.875rem;
+    box-shadow: 0 4px 12px rgba(144, 12, 63, 0.3); z-index: 10000;
+  }
+  .ad-container {
+    display: flex; justify-content: center; align-items: center;
+    margin: 15px auto; padding: 5px;
+    background: rgba(255,255,255,0.05); border-radius: 8px; min-height: 50px;
+  }
+  .ad-top { max-width: 728px; margin: 10px auto 20px; }
+  .ad-middle { max-width: 300px; margin: 25px auto; float: left; margin-right: 20px; }
+  .ad-bottom { max-width: 320px; margin: 20px auto 10px; clear: both; }
+  @media (max-width: 768px) {
+    .ad-top { max-width: 100%; }
+    .ad-middle { float: none; margin: 20px auto; }
+  }
+</style>
+""".strip()
+
+# ==========================================
+# 5. دوال تحليل المباريات
+# ==========================================
+def normalize_time(time_str):
+    """تحويل الوقت إلى صيغة 24 ساعة"""
+    time_str = time_str.strip()
+    if 'مساءً' in time_str or 'م' in time_str:
+        time_str = re.sub(r'[مساءًم]', '', time_str).strip()
+        h, m = time_str.split(':')
+        h = 12 if h == 12 else (int(h) % 12) + 12
+        return f"{h:02d}:{int(m):02d}"
+    elif 'صباحًا' in time_str or 'ص' in time_str:
+        time_str = re.sub(r'[صباحًاص]', '', time_str).strip()
+        h, m = time_str.split(':')
+        return f"{int(h):02d}:{int(m):02d}"
+    else:
+        parts = time_str.split(':')
+        return f"{int(parts[0]):02d}:{int(parts[1]):02d}"
+
+def parse_matches(text):
+    """تحليل قائمة المباريات وتجميع الروابط"""
+    matches_dict = {}
+    for line in text.split('\n'):
+        line = line.strip()
+        if not line:
+            continue
+        match = re.match(r'(\d{1,2}:\d{2}(?:\s*(?:صباحًا|مساءً|ص|م))?)\s+(.+?)\s*[×xXضدvs]+\s*(.+?)\s*\|\s*(https?://.+)', line, re.IGNORECASE)
+        if match:
+            time_str = match.group(1)
+            team1 = match.group(2).strip()
+            team2 = match.group(3).strip()
+            url = match.group(4).strip()
+            
+            time_24 = normalize_time(time_str)
+            is_special = any(x in team1.lower() for x in ['rugby', 'nba'])
+            
+            if is_special:
+                key = f"{team1}||{time_24}"
+            else:
+                key = f"{team1}||{team2}||{time_24}"
+            
+            if key not in matches_dict:
+                matches_dict[key] = {
+                    'time': time_24,
+                    'team1': team1,
+                    'team2': '' if is_special else team2,
+                    'urls': [],
+                    'is_special': is_special
+                }
+            
+            if url not in matches_dict[key]['urls']:
+                matches_dict[key]['urls'].append(url)
+    
+    return list(matches_dict.values())
+
+# ==========================================
+# 6. قالب بطاقة المباراة
+# ==========================================
+def generate_match_card(match, extra_info=None):
+    """توليد بطاقة المباراة بصيغة Blogger"""
+    team1 = match['team1']
+    team2 = match['team2']
+    logo1 = get_team_logo(team1)
+    logo2 = get_team_logo(team2) if team2 else logo1
+    
+    extra = extra_info or {}
+    channel = extra.get('channel', 'قناة رياضية')
+    commentator = extra.get('commentator', 'معلق رياضي')
+    league = extra.get('league', 'دوري كرة القدم')
+    
+    try:
+        h, m = map(int, match['time'].split(':'))
+        period = "PM" if h >= 12 else "AM"
+        h12 = h if h <= 12 else h - 12
+        if h12 == 0:
+            h12 = 12
+        time_12 = f"{h12:02d}:{m:02d} {period}"
+    except:
+        time_12 = match['time']
+    
+    return f"""<!-- [ {team1} ضد {team2} ] -->
+<div class="containerMatch">
+<a href="https://www.saad-live.kozow.com/p/match-{team1.replace(' ','-')}-vs-{team2.replace(' ','-')}.html" title="مشاهدة مباراة {team1} و {team2} اليوم بث مباشر">
+<div class="Match">
+<div class="fareq"><div class="Imagee"><img alt="{team1}" class="col-img lazy" height="70" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAQAAAA3fa6RAAAADklEQVR42mNkAANGCAUAACMAA2w/AMgAAAAASUVORK5CYII=" data-src="{logo1}" title="{team1}" width="70" /></div><div class="asm">{team1}</div></div>
+<div class="Nateja"><div class="matchHour">{time_12}</div><div class="natej">0-0</div></div>
+<div class="fareq"><div class="Imagee"><img alt="{team2 or 'الفريق الثاني'}" class="col-img lazy" height="70" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAQAAAA3fa6RAAAADklEQVR42mNkAANGCAUAACMAA2w/AMgAAAAASUVORK5CYII=" data-src="{logo2}" title="{team2 or 'الفريق الثاني'}" width="70" /></div><div class="asm">{team2 or ''}</div></div>
+</div>
+<div class="Show"></div><ul><li>{channel}</li><li>{commentator}</li><li>{league}</li></ul>
+</a>
+</div>"""
+
+# ==========================================
+# 7. قالب الصفحة الكاملة
+# ==========================================
+def generate_full_page(match, extra_info=None):
+    """توليد الصفحة الكاملة المطابقة للمثال"""
+    team1 = match['team1']
+    team2 = match['team2']
+    time = match['time']
+    
+    extra = extra_info or {}
+    league = extra.get('league', 'دوري كرة القدم')
+    channel = extra.get('channel', 'قناة رياضية')
+    commentator = extra.get('commentator', 'غير معروف')
+    stadium = extra.get('stadium', 'ملعب غير معروف')
+    
+    logo1 = get_team_logo(team1)
+    logo2 = get_team_logo(team2) if team2 else logo1
+    
+    date = datetime.now().strftime('%Y-%m-%d')
+    startDateTimeISO = f"{date}T{time}:00+03:00" if time != "غير معروف" else f"{date}T00:00:00+03:00"
+    
+    ld_json = f'''{{"@context":"https://schema.org","@type":"SportsEvent","name":"مباراة {team1} ضد {team2} - {league}","startDate":"{startDateTimeISO}","eventAttendanceMode":"https://schema.org/MixedEventAttendanceMode","eventStatus":"https://schema.org/EventScheduled","location":{{"@type":"Place","name":"{stadium}","address":{{"@type":"PostalAddress","addressCountry":"SA"}}}},"performer":[{{"@type":"SportsTeam","name":"{team1}"}},{{"@type":"SportsTeam","name":"{team2}"}}],"organizer":{{"@type":"Organization","name":"Saad Live | سعد لايف","url":"https://www.saad-live.giize.com/"}}, "url":"{startDateTimeISO}"}}'''
+    
+    lineup_js = f'''
+<script>
+const teams = {{
+  "{team1}": {{
+    players: [],
+    coach: {{ name: "غير معروف", image: "https://via.placeholder.com/32", left: "50%", top: "85%" }},
+    subs: [], absents: []
+  }},
+  "{team2 or 'الفريق الثاني'}": {{
+    players: [],
+    coach: {{ name: "غير معروف", image: "https://via.placeholder.com/32", left: "50%", top: "85%" }},
+    subs: [], absents: []
+  }}
+}};
+function renderPlayers(teamName) {{
+  const field = document.getElementById("field");
+  field.innerHTML = "";
+  const team = teams[teamName];
+  if (!team) return;
+  team.players.forEach(p => {{
+    const player = document.createElement("div");
+    player.className = "player";
+    player.style.left = p.left || "50%";
+    player.style.top = p.top || "50%";
+    const img = document.createElement("img");
+    img.src = p.image || "https://via.placeholder.com/48";
+    const num = document.createElement("div");
+    num.className = "player-number";
+    num.textContent = p.number || "";
+    const name = document.createElement("div");
+    name.className = "player-name";
+    name.textContent = p.name || "";
+    player.appendChild(img); player.appendChild(num); player.appendChild(name);
+    field.appendChild(player);
+  }});
+  const coach = document.createElement("div");
+  coach.className = "coach";
+  coach.style.left = team.coach.left; coach.style.top = team.coach.top;
+  const img = document.createElement("img");
+  img.src = team.coach.image;
+  const name = document.createElement("div");
+  name.className = "coach-name";
+  name.textContent = team.coach.name;
+  coach.appendChild(img); coach.appendChild(name);
+  field.appendChild(coach);
+}}
+function changeLineup(teamName) {{
+  document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+  const btn = [...document.querySelectorAll('.tab-button')].find(b => b.textContent === teamName);
+  if (btn) btn.classList.add('active');
+  renderPlayers(teamName);
+}}
+document.addEventListener("DOMContentLoaded", () => {{
+  changeLineup("{team1}");
+}});
+</script>
+'''
+    
+    seo_content = f'''
+<div class="posts-content">
+
+<h2>مشاهدة مباراة {team1} ضد {team2} بث مباشر اليوم</h2>
+
+<p>
+يوفر لكم موقع <strong>Saad Live | سعد لايف</strong> خدمة مشاهدة <strong>بث مباشر مباراة {team1} و{team2}</strong> اليوم بدون تقطيع، بجودات متعددة تناسب جميع سرعات الإنترنت، مع تحديث مستمر للسيرفرات لضمان أفضل تجربة مشاهدة قبل وأثناء اللقاء.
+</p>
+
+<h2>موعد مباراة {team1} و{team2} اليوم</h2>
+
+<p>
+تنطلق مباراة <strong>{team1}</strong> ضد <strong>{team2}</strong> اليوم في تمام الساعة <strong>{time}</strong> بتوقيت الرياض، وذلك ضمن منافسات بطولة <strong>{league}</strong>، في مواجهة قوية ينتظرها عشاق كرة القدم من مختلف أنحاء العالم.
+</p>
+
+<h2>القنوات الناقلة لمباراة {team1} و{team2}</h2>
+
+<p>
+تُنقل المباراة مباشرة عبر قناة <strong>{channel}</strong>، ويصاحب اللقاء بالتعليق الصوتي المميز المعلق <strong>{commentator}</strong>، مع تغطية كاملة لأحداث المباراة لحظة بلحظة.
+</p>
+
+<h2>بث مباشر {team1} ضد {team2} بدون تقطيع</h2>
+
+<p>
+استمتع الآن بمشاهدة مباراة <strong>{team1}</strong> و<strong>{team2}</strong> بث مباشر بجودة عالية HD وFull HD، مع إمكانية اختيار أكثر من سيرفر بث لضمان مشاهدة مستقرة بدون انقطاع، سواء من الهاتف المحمول أو الكمبيوتر أو الجهاز اللوحي.
+</p>
+
+<h2>تابع جميع مباريات اليوم عبر Saad Live</h2>
+
+<p>
+يقدم <strong>Saad Live | سعد لايف</strong> تغطية يومية لجميع مباريات الدوريات العالمية والعربية، بما في ذلك دوري أبطال أوروبا، الدوري الإنجليزي، الدوري الإسباني، الدوري الإيطالي، الدوري الفرنسي، دوري روشن السعودي، دوري أبطال آسيا، وكأس العالم، مع تحديث النتائج ومواعيد المباريات والقنوات الناقلة بشكل مستمر.
+</p>
+
+</div>
+<iframe 
+  src="https://callcio-live.blogspot.com/2025/08/blog-post.html"
+  width="100%"
+  height="500"
+  frameborder="0"
+  allowfullscreen
+  allow="autoplay; fullscreen"
+  sandbox="allow-scripts allow-same-origin allow-fullscreen">
+</iframe>
+'''
+    
+    return f"""<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>مشاهدة مباراة {team1} و {team2} بث مباشر | {league}</title>
+<meta name="description" content="شاهد مباراة {team1} و {team2} بث مباشر - {league}">
+<meta name="keywords" content="{team1},{team2},بث مباشر,{league}">
+<meta name="robots" content="index,follow">
+<meta property="og:title" content="مباراة {team1} ضد {team2}">
+<meta property="og:image" content="{logo1}">
+<script type="application/ld+json">{ld_json}</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8DDNLS5L35"></script>
+<script>function gtag(){{dataLayer.push(arguments);}}gtag('js',new Date());gtag('config','G-8DDNLS5L35');</script>
+{FULL_MATCH_CSS}
+</head>
+
+<body>
+{ADSTERRA_ADS['top_banner']}
+<div class="coMatch"><div class="backMatch"><div class="baMatch">
+<div class="colmd"><div class="teamlogo" style="background-image:url('{logo1}')"></div><div class="teamname">{team1}</div></div>
+<div class="colmd ce"><div class="matchvs">VS</div></div>
+<div class="colmd"><div class="teamlogo" style="background-image:url('{logo2}')"></div><div class="teamname">{team2}</div></div>
+</div></div>
+<div class="tabs-container">
+<button class="tab-button" onclick="changeLineup('{team1}')">{team1}</button>
+<button class="tab-button" onclick="changeLineup('{team2 or 'الفريق الثاني'}')">{team2 or 'الفريق الثاني'}</button>
+</div>
+<div class="field-container">
+<button id="toggleSubsBtn" class="toggle-subs-btn">إظهار الاحتياط والغائبين</button>
+<div class="field" id="field"></div>
+<div id="subsAbsentsOverlay" class="subs-absents-overlay"><button id="closeSubsBtn">إغلاق</button></div>
+</div>
+{lineup_js}
+{ADSTERRA_ADS['middle_square']}
+{seo_content}
+{ADSTERRA_ADS['bottom_mobile']}
+<div class="TableMatch"><h3>معلومات المباراة</h3><table>
+<tr><th>الفريق الأول</th><td>{team1}</td></tr>
+<tr><th>الفريق الثاني</th><td>{team2}</td></tr>
+<tr><th>التاريخ</th><td>{date}</td></tr>
+<tr><th>الوقت</th><td>{time}</td></tr>
+<tr><th>القناة</th><td>{channel}</td></tr>
+<tr><th>المعلق</th><td>{commentator}</td></tr>
+</table></div>
+</body></html>"""
+
+# ==========================================
+# 8. قالب صفحة موشريل
+# ==========================================
+def generate_mochril_page(match):
+    """توليد صفحة موشريل (البث المباشر)"""
+    team1 = match['team1']
+    team2 = match['team2']
+    urls = match['urls']
+    title = f"{team1} × {team2}" if team2 else team1
+    
+    quality_buttons_html = ""
+    lang_labels = ["EN", "FR", "GR", "AR"]
+    for i, url in enumerate(urls):
+        label = lang_labels[i] if i < len(lang_labels) else f'HD{i+1}'
+        active = 'active' if i == 0 else ''
+        quality_buttons_html += f'<button class="quality-btn {active}" data-src="{url}">{label}</button>\n'
+    
+    quality_buttons_html = f'<ul class="quality-menu">{quality_buttons_html}</ul>'
+    first_url = urls[0] if urls else ""
+    
+    return f"""<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>{title} - بث مباشر</title>
+<link rel="icon" type="image/x-icon" href="https://com.coffe.world/wp-content/uploads/2025/07/cropped-7.png" />
+<style>
+* {{ margin: 0; padding: 0; box-sizing: border-box; }}
+html, body {{ width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Segoe UI', Arial, sans-serif; direction: rtl; }}
+.quality-menu {{ display: flex; flex-wrap: wrap; list-style: none; padding: 1px 1px; justify-content: center; gap: 10px; position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; background: rgba(15, 15, 25, 0.85); border-bottom: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(8px); }}
+.quality-btn {{ cursor: pointer; padding: 4px 8px; background: linear-gradient(135deg, #2a3356, #1e2642); color: #fff; font-size: 13px; font-weight: 500; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; }}
+.quality-btn:hover, .quality-btn.active {{ background: linear-gradient(135deg, #b91c1c, #7f1d1d); }}
+.video-container {{ position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; display: flex; justify-content: center; align-items: center; }}
+iframe {{ width: 100%; height: 100%; border: none; }}
+.loading-overlay {{ position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; color: #fff; font-size: 16px; gap: 10px; }}
+.spinner {{ width: 50px; height: 50px; border: 4px solid #333; border-top: 4px solid #b91c1c; border-radius: 50%; animation: spin 1s linear infinite; }}
+@keyframes spin {{ 0% {{ transform: rotate(0deg); }} 100% {{ transform: rotate(360deg); }} }}
+.chplayer {{ position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); padding: 14px 40px; font-size: 15px; font-weight: 700; color: #fff; border-radius: 50px; background: linear-gradient(145deg, rgba(0, 119, 255, 0.3), rgba(88, 0, 255, 0.3)); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(18px); box-shadow: 0 8px 25px rgba(0,0,0,0.5); z-index: 9999; }}
+</style>
+</head>
+<body>
+{quality_buttons_html}
+<div class="video-container">
+    <div class="loading-overlay" id="loading">
+        <div class="spinner"></div>
+        <p>جاري تحميل البث... {team1} × {team2}</p>
+    </div>
+    <iframe id="player-frame" src="{first_url}" allowfullscreen sandbox="allow-same-origin allow-scripts" frameborder="0" scrolling="no" onload="hideLoading()"></iframe>
+</div>
+<div class="chplayer">🔴 بث مباشر: saad-live</div>
+<script>
+function hideLoading(){{
+    const loader = document.getElementById('loading');
+    loader.style.opacity = 0;
+    setTimeout(() => {{ loader.style.display = 'none'; }}, 600);
+}}
+document.querySelectorAll('.quality-btn').forEach(btn => {{
+    btn.addEventListener('click', function() {{
+        document.querySelectorAll('.quality-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        const loader = document.getElementById('loading');
+        loader.style.display = 'flex';
+        loader.style.opacity = 1;
+        document.getElementById('player-frame').src = this.getAttribute('data-src');
+    }});
+}});
+</script>
+</body>
+</html>"""
+
+# ==========================================
+# 9. ⭐ Blogger API - لنشر Pages (صفحات) ⭐
+# ==========================================
+class BloggerManager:
+    """مدير Blogger API لنشر صفحات (Pages) - يدعم مدونات متعددة"""
+    
+    def __init__(self, config):
+        self.config = config
+        self.service = None
+        self.last_error = None
+        self.debug_log = []
+    
+    def log(self, message, level="INFO"):
+        """تسجيل رسالة في السجل"""
+        timestamp = datetime.now().strftime('%H:%M:%S')
+        log_entry = f"[{timestamp}] [{level}] {message}"
+        self.debug_log.append(log_entry)
+        if len(self.debug_log) > 100:
+            self.debug_log.pop(0)
+        print(log_entry)
+    
+    def check_prerequisites(self):
+        """فحص المتطلبات الأساسية"""
+        self.log(f"🔍 فحص المتطلبات لـ {self.config['name']}...")
+        issues = []
+        
+        cred_file = self.config['credentials_file']
+        if not os.path.exists(cred_file):
+            issues.append(f"❌ ملف {cred_file} غير موجود!")
+            self.log(f"❌ الملف مفقود: {cred_file}", "ERROR")
+        else:
+            try:
+                with open(cred_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    if 'installed' not in data and 'web' not in data:
+                        issues.append("❌ ملف credentials.json غير صالح!")
+                    else:
+                        self.log(f"✅ ملف {cred_file} موجود وصالح")
+            except Exception as e:
+                issues.append(f"❌ خطأ في قراءة credentials.json: {e}")
+        
+        required_libs = ['googleapiclient', 'google_auth_oauthlib', 'google.auth']
+        for lib in required_libs:
+            try:
+                __import__(lib.split('.')[0])
+                self.log(f"✅ المكتبة {lib} مثبتة")
+            except ImportError:
+                issues.append(f"❌ المكتبة {lib} غير مثبتة!")
+        
+        blog_id = self.config['blog_id']
+        if not blog_id or len(blog_id) < 10:
+            issues.append("❌ Blog ID غير صحيح!")
+        else:
+            self.log(f"✅ Blog ID: {blog_id}")
+        
+        return issues
+    
+    def authenticate(self, force_new=False):
+        """المصادقة مع Blogger API"""
+        try:
+            from googleapiclient.discovery import build
+            from google_auth_oauthlib.flow import InstalledAppFlow
+            from google.auth.transport.requests import Request
+            from google.oauth2.credentials import Credentials
+            
+            self.log(f"🔐 بدء المصادقة لـ {self.config['name']}...")
+            
+            SCOPES = ['https://www.googleapis.com/auth/blogger']
+            creds = None
+            
+            if force_new and os.path.exists(self.config['token_file']):
+                os.remove(self.config['token_file'])
+                self.log("🗑️ تم حذف token القديم")
+            
+            token_file = self.config['token_file']
+            if os.path.exists(token_file):
+                try:
+                    self.log(f"📂 جاري تحميل token من: {token_file}")
+                    creds = Credentials.from_authorized_user_file(token_file, SCOPES)
+                    self.log("✅ تم تحميل token بنجاح")
+                except Exception as e:
+                    self.log(f"⚠️ خطأ في تحميل token: {e}", "WARNING")
+                    creds = None
+            
+            if creds and creds.valid:
+                self.log("✅ Token صالح")
+            elif creds and creds.expired and creds.refresh_token:
+                self.log("🔄 تجديد token...")
+                try:
+                    creds.refresh(Request())
+                    self.log("✅ تم تجديد token بنجاح")
+                    with open(token_file, 'w') as token:
+                        token.write(creds.to_json())
+                    self.log("💾 تم حفظ token المجدد")
+                except Exception as e:
+                    self.log(f"❌ فشل تجديد token: {e}", "ERROR")
+                    creds = None
+            
+            if not creds:
+                self.log("🌐 فتح المتصفح للمصادقة...")
+                if not os.path.exists(self.config['credentials_file']):
+                    raise FileNotFoundError(f"ملف {self.config['credentials_file']} غير موجود!")
+                
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    self.config['credentials_file'], 
+                    SCOPES
+                )
+                creds = flow.run_local_server(port=8080)
+                self.log("✅ تمت المصادقة بنجاح")
+                
+                with open(token_file, 'w') as token:
+                    token.write(creds.to_json())
+                self.log(f"💾 تم حفظ token في: {token_file}")
+            
+            self.service = build('blogger', 'v3', credentials=creds)
+            self.log("✅ تم بناء Blogger Service بنجاح")
+            return True
+            
+        except Exception as e:
+            self.last_error = str(e)
+            self.log(f"❌ خطأ في المصادقة: {e}", "ERROR")
+            self.log(traceback.format_exc(), "DEBUG")
+            return False
+    
+    def test_connection(self):
+        """اختبار الاتصال بالمدونة"""
+        if not self.service:
+            return False, "الخدمة غير مهيأة"
+        
+        try:
+            blog_id = self.config['blog_id']
+            self.log(f"🔍 اختبار الاتصال بالمدونة: {blog_id}")
+            
+            blog = self.service.blogs().get(blogId=blog_id).execute()
+            
+            blog_name = blog.get('name', 'غير معروف')
+            blog_url = blog.get('url', 'غير معروف')
+            pages_count = blog.get('pages', {}).get('totalItems', 0)
+            
+            self.log(f"✅ المدونة: {blog_name}")
+            self.log(f"🌐 الرابط: {blog_url}")
+            self.log(f"📄 عدد الصفحات: {pages_count}")
+            
+            return True, {
+                'name': blog_name,
+                'url': blog_url,
+                'pages': pages_count
+            }
+            
+        except Exception as e:
+            self.last_error = str(e)
+            self.log(f"❌ فشل الاتصال: {e}", "ERROR")
+            return False, str(e)
+    
+    def publish_page(self, title, content):
+        """نشر صفحة (Page) على Blogger"""
+        if not self.service:
+            return None, "الخدمة غير مهيأة"
+        
+        try:
+            blog_id = self.config['blog_id']
+            self.log(f"📤 جاري نشر صفحة على {self.config['name']}: {title}")
+            
+            page_body = {
+                'title': title,
+                'content': content
+            }
+            
+            page = self.service.pages().insert(
+                blogId=blog_id, 
+                body=page_body
+            ).execute()
+            
+            url = page.get('url')
+            page_id = page.get('id')
+            
+            self.log(f"✅ تم نشر الصفحة بنجاح!")
+            self.log(f"🆔 Page ID: {page_id}")
+            self.log(f"🌐 URL: {url}")
+            
+            return url, None
+            
+        except Exception as e:
+            self.last_error = str(e)
+            self.log(f"❌ فشل نشر الصفحة: {e}", "ERROR")
+            self.log(traceback.format_exc(), "DEBUG")
+            return None, str(e)
+    
+    def get_debug_info(self):
+        """الحصول على معلومات التصحيح"""
+        return "\n".join(self.debug_log[-50:])
+
+# إنشاء مدير لكل مدونة
+blogger_managers = {}
+for key, config in BLOGGER_CONFIGS.items():
+    blogger_managers[key] = BloggerManager(config)
+
+# ==========================================
+# 10. الواجهة الرسومية (مع اختيار المدونة الديناميكي)
+# ==========================================
+class SaadLiveApp(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("🎯 Saad Live - لوحة التحكم الاحترافية")
+        self.geometry("1400x950")
+        self.minsize(1200, 800)
+        self.configure(bg="#0F0F13")
+        
+        self.matches = []
+        self.selected_match = None
+        self.generated_pages = []
+        self.current_blog_key = None
+        
+        self.setup_theme()
+        self.create_main_interface()
+        
+    def setup_theme(self):
+        style = ttk.Style(self)
+        style.theme_use('clam')
+        
+        self.bg_color = "#0F0F13"
+        self.card_bg = "#1A1A24"
+        self.fg_color = "#E2E8F0"
+        self.accent_color = "#b91c1c"
+        self.accent_hover = "#dc2626"
+        self.secondary_text = "#94A3B8"
+        
+        self.configure(bg=self.bg_color)
+        
+        style.configure(".", background=self.bg_color, foreground=self.fg_color, fieldbackground=self.card_bg, borderwidth=0, focusthickness=0, focuscolor=self.bg_color)
+        style.configure("TFrame", background=self.bg_color)
+        
+        style.configure("TLabel", background=self.bg_color, foreground=self.fg_color, font=("Segoe UI", 10))
+        style.configure("Title.TLabel", background=self.bg_color, foreground=self.fg_color, font=("Segoe UI", 18, "bold"))
+        style.configure("Accent.TLabel", background=self.bg_color, foreground=self.accent_color, font=("Segoe UI", 11, "bold"))
+        style.configure("Secondary.TLabel", background=self.bg_color, foreground=self.secondary_text, font=("Segoe UI", 10, "italic"))
+        
+        style.configure("TButton", background=self.card_bg, foreground=self.fg_color, font=("Segoe UI", 10, "bold"), padding=(15, 8), borderwidth=0, relief="flat")
+        style.map("TButton", 
+                  background=[("active", self.accent_color), ("pressed", self.accent_color)], 
+                  foreground=[("active", "#FFFFFF"), ("pressed", "#FFFFFF")])
+                  
+        style.configure("Accent.TButton", background=self.accent_color, foreground="#FFFFFF", font=("Segoe UI", 10, "bold"), padding=(15, 8))
+        style.map("Accent.TButton", background=[("active", self.accent_hover), ("pressed", self.accent_hover)])
+        
+        style.configure("Success.TButton", background="#10B981", foreground="#FFFFFF", font=("Segoe UI", 10, "bold"), padding=(15, 8))
+        style.map("Success.TButton", background=[("active", "#059669"), ("pressed", "#059669")])
+        
+        style.configure("TEntry", fieldbackground=self.card_bg, foreground=self.fg_color, insertcolor=self.fg_color, padding=10, borderwidth=1, relief="solid", bordercolor="#333340")
+        style.map("TEntry", fieldbackground=[("focus", "#252532")], bordercolor=[("focus", self.accent_color)])
+        
+        style.configure("TLabelframe", background=self.bg_color, foreground=self.accent_color)
+        style.configure("TLabelframe.Label", background=self.bg_color, foreground=self.accent_color, font=("Segoe UI", 11, "bold"))
+        
+        # Style for Combobox
+        style.configure("TCombobox", 
+                       fieldbackground=self.card_bg, 
+                       background=self.card_bg,
+                       foreground=self.fg_color, 
+                       arrowcolor=self.fg_color,
+                       bordercolor=self.accent_color,
+                       lightcolor=self.accent_color,
+                       darkcolor=self.accent_color,
+                       selectbackground=self.accent_color,
+                       selectforeground="#FFFFFF",
+                       padding=8)
+        style.map("TCombobox", 
+                 fieldbackground=[("readonly", self.card_bg)],
+                 bordercolor=[("focus", self.accent_color)])
+
+    def create_main_interface(self):
+        main_container = ttk.Frame(self)
+        main_container.pack(fill=tk.BOTH, expand=True, padx=25, pady=25)
+        
+        # ===== HEADER =====
+        header_frame = ttk.Frame(main_container)
+        header_frame.pack(fill=tk.X, pady=(0, 20))
+        
+        title_frame = ttk.Frame(header_frame)
+        title_frame.pack(side=tk.LEFT)
+        
+        ttk.Label(title_frame, text="🎯 Saad Live", style="Title.TLabel").pack(anchor=tk.W)
+        ttk.Label(title_frame, text="لوحة التحكم الاحترافية - إدارة متعددة المدونات", style="Accent.TLabel").pack(anchor=tk.W, pady=(5, 0))
+        
+        self.status_label = ttk.Label(header_frame, text="✅ جاهز", foreground="#10B981", background=self.bg_color, font=("Segoe UI", 11, "bold"))
+        self.status_label.pack(side=tk.RIGHT, padx=10)
+        
+        # ===== BLOG SELECTOR (⭐ الميزة الجديدة) =====
+        blog_selector_frame = ttk.LabelFrame(main_container, text=" 🌐  اختيار المدونة المستهدفة ", padding=15)
+        blog_selector_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        selector_row = ttk.Frame(blog_selector_frame)
+        selector_row.pack(fill=tk.X)
+        
+        ttk.Label(selector_row, text="📝 المدونة:", font=("Segoe UI", 11, "bold"), foreground=self.accent_color).pack(side=tk.LEFT, padx=(0, 10))
+        
+        # Combobox لاختيار المدونة
+        self.blog_names = [f"{config['name']} ({key})" for key, config in BLOGGER_CONFIGS.items()]
+        self.blog_keys = list(BLOGGER_CONFIGS.keys())
+        
+        self.blog_combo = ttk.Combobox(
+            selector_row,
+            values=self.blog_names,
+            state="readonly",
+            width=45,
+            font=("Segoe UI", 11)
+        )
+        self.blog_combo.pack(side=tk.LEFT, padx=(0, 15), fill=tk.X, expand=True)
+        self.blog_combo.current(0)
+        self.blog_combo.bind("<<ComboboxSelected>>", self.on_blog_change)
+        
+        # معلومات المدونة المختارة
+        self.blog_info_label = ttk.Label(selector_row, text="", foreground="#10B981", font=("Segoe UI", 10))
+        self.blog_info_label.pack(side=tk.LEFT, padx=(15, 0))
+        self.update_blog_info()
+        
+        # أزرار إدارة المدونة المختارة
+        blog_btn_frame = ttk.Frame(blog_selector_frame)
+        blog_btn_frame.pack(fill=tk.X, pady=(10, 0))
+        
+        ttk.Button(blog_btn_frame, text="🔐 مصادقة", command=self.authenticate_current_blog, style="Accent.TButton").pack(side=tk.LEFT, padx=(0, 8))
+        ttk.Button(blog_btn_frame, text="🧪 اختبار الاتصال", command=self.test_current_blog_connection).pack(side=tk.LEFT, padx=(0, 8))
+        ttk.Button(blog_btn_frame, text="🔄 إعادة المصادقة", command=self.force_reauth_current).pack(side=tk.LEFT, padx=(0, 8))
+        ttk.Button(blog_btn_frame, text="🐛 سجل التصحيح", command=self.show_debug_log).pack(side=tk.LEFT)
+        
+        # ===== CONTENT =====
+        content_frame = ttk.Frame(main_container)
+        content_frame.pack(fill=tk.BOTH, expand=True)
+        content_frame.columnconfigure(0, weight=2)
+        content_frame.columnconfigure(1, weight=3)
+        content_frame.rowconfigure(0, weight=1)
+        
+        # ===== LEFT COLUMN =====
+        left_col = ttk.Frame(content_frame)
+        left_col.grid(row=0, column=0, sticky="nsew", padx=(0, 15))
+        
+        input_card = ttk.LabelFrame(left_col, text=" 📝  قائمة المباريات ", padding=15)
+        input_card.pack(fill=tk.X, pady=(0, 15))
+        
+        self.matches_input = scrolledtext.ScrolledText(
+            input_card, height=6, font=("Consolas", 11), 
+            bg=self.card_bg, fg=self.fg_color, insertbackground=self.fg_color, 
+            relief="flat", highlightthickness=2, highlightbackground="#2A2A35",
+            highlightcolor=self.accent_color
+        )
+        self.matches_input.pack(fill=tk.X, pady=5)
+        self.matches_input.insert(tk.END, """19:30 Benfica x Flamengo | https://v4.sportsonlinne.click/channels/pt/eleven3.php
+20:00 Rugby: Argentina x Wales | https://v4.sportsonlinne.click/channels/pt/sporttv2.php
+22:00 Norway x England | https://v4.sportsonlinne.click/channels/hd/hd1.php""")
+        
+        list_card = ttk.LabelFrame(left_col, text=" 📋  المباريات (Ctrl/Shift للاختيار المتعدد) ", padding=15)
+        list_card.pack(fill=tk.BOTH, expand=True)
+        
+        self.matches_listbox = tk.Listbox(
+            list_card, font=("Segoe UI", 11), 
+            bg=self.card_bg, fg=self.fg_color, 
+            selectbackground=self.accent_color, selectforeground="#FFF", 
+            relief="flat", highlightthickness=2, highlightbackground="#2A2A35",
+            highlightcolor=self.accent_color, activestyle="none",
+            borderwidth=0,
+            selectmode=tk.EXTENDED
+        )
+        self.matches_listbox.pack(fill=tk.BOTH, expand=True, pady=5)
+        self.matches_listbox.bind('<<ListboxSelect>>', self.on_match_select)
+        
+        select_btns = ttk.Frame(list_card)
+        select_btns.pack(fill=tk.X, pady=(5, 0))
+        
+        ttk.Button(select_btns, text="✅ تحديد الكل", command=self.select_all_matches).pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Button(select_btns, text="❌ إلغاء التحديد", command=self.deselect_all_matches).pack(side=tk.LEFT, padx=(0, 5))
+        
+        self.match_info_label = ttk.Label(list_card, text="🎯 اختر مباراة (أو عدة مباريات) من القائمة", style="Secondary.TLabel")
+        self.match_info_label.pack(fill=tk.X, pady=(10, 0))
+        
+        # ===== RIGHT COLUMN =====
+        right_col = ttk.Frame(content_frame)
+        right_col.grid(row=0, column=1, sticky="nsew", padx=(15, 0))
+        
+        info_card = ttk.LabelFrame(right_col, text=" ⚽  تفاصيل المباراة ", padding=15)
+        info_card.pack(fill=tk.X, pady=(0, 15))
+        
+        info_grid = ttk.Frame(info_card)
+        info_grid.pack(fill=tk.X)
+        
+        row1 = ttk.Frame(info_grid)
+        row1.pack(fill=tk.X, pady=5)
+        ttk.Label(row1, text="🏆 الدوري:", width=12, anchor=tk.W).pack(side=tk.LEFT, padx=(0, 10))
+        self.league_entry = ttk.Entry(row1, width=30)
+        self.league_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 20))
+        self.league_entry.insert(0, "دوري كرة القدم")
+        
+        ttk.Label(row1, text="📺 القناة:", width=12, anchor=tk.W).pack(side=tk.LEFT, padx=(0, 10))
+        self.channel_entry = ttk.Entry(row1, width=30)
+        self.channel_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.channel_entry.insert(0, "beIN SPORTS MAX 1")
+        
+        row2 = ttk.Frame(info_grid)
+        row2.pack(fill=tk.X, pady=5)
+        ttk.Label(row2, text="🎙️ المعلق:", width=12, anchor=tk.W).pack(side=tk.LEFT, padx=(0, 10))
+        self.commentator_entry = ttk.Entry(row2, width=30)
+        self.commentator_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 20))
+        self.commentator_entry.insert(0, "غير معروف")
+        
+        ttk.Label(row2, text="🏟️ الملعب:", width=12, anchor=tk.W).pack(side=tk.LEFT, padx=(0, 10))
+        self.stadium_entry = ttk.Entry(row2, width=30)
+        self.stadium_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.stadium_entry.insert(0, "ملعب غير معروف")
+        
+        action_card = ttk.LabelFrame(right_col, text=" ⚡  أدوات التوليد والنشر ", padding=15)
+        action_card.pack(fill=tk.X, pady=(0, 15))
+        
+        # --- تحليل البيانات ---
+        analysis_frame = ttk.Frame(action_card)
+        analysis_frame.pack(fill=tk.X, pady=(0, 15))
+        ttk.Label(analysis_frame, text="🔍 تحليل البيانات", font=("Segoe UI", 10, "bold"), foreground=self.accent_color).pack(anchor=tk.W, pady=(0, 5))
+        
+        btn_row1 = ttk.Frame(analysis_frame)
+        btn_row1.pack(fill=tk.X)
+        ttk.Button(btn_row1, text="🔍 تحليل المباريات", command=self.analyze_matches, style="Accent.TButton").pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(btn_row1, text="🗑️ مسح الكل", command=self.clear_all).pack(side=tk.LEFT)
+        
+        # --- توليد للمباراة المحددة ---
+        gen_frame = ttk.Frame(action_card)
+        gen_frame.pack(fill=tk.X, pady=(0, 15))
+        ttk.Label(gen_frame, text="⚡ توليد للمباراة المحددة", font=("Segoe UI", 10, "bold"), foreground=self.accent_color).pack(anchor=tk.W, pady=(0, 5))
+        
+        btn_row3 = ttk.Frame(gen_frame)
+        btn_row3.pack(fill=tk.X)
+        ttk.Button(btn_row3, text="📋 بطاقة Blogger", command=self.generate_card, style="Accent.TButton").pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(btn_row3, text="🌐 الصفحة الكاملة", command=self.generate_page, style="Accent.TButton").pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(btn_row3, text="🔴 صفحة موشريل", command=self.generate_mochril, style="Accent.TButton").pack(side=tk.LEFT)
+        
+        # --- توليد جماعي ---
+        batch_frame = ttk.Frame(action_card)
+        batch_frame.pack(fill=tk.X, pady=(0, 15))
+        ttk.Label(batch_frame, text="🚀 توليد جماعي (للمباريات المختارة)", font=("Segoe UI", 10, "bold"), foreground="#10B981").pack(anchor=tk.W, pady=(0, 5))
+        
+        btn_row_batch = ttk.Frame(batch_frame)
+        btn_row_batch.pack(fill=tk.X)
+        ttk.Button(btn_row_batch, text="📑 توليد كل البطاقات", command=self.generate_all_cards, style="Success.TButton").pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(btn_row_batch, text="🌐 توليد كل الصفحات", command=self.generate_all_pages, style="Success.TButton").pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(btn_row_batch, text="🔴 توليد كل موشريل", command=self.generate_all_mochrils, style="Success.TButton").pack(side=tk.LEFT)
+        
+        # --- ⭐ حفظ ونشر على المدونة المختارة ⭐ ---
+        out_frame = ttk.Frame(action_card)
+        out_frame.pack(fill=tk.X)
+        ttk.Label(out_frame, text="💾 حفظ ونشر (على المدونة المختارة أعلاه)", font=("Segoe UI", 10, "bold"), foreground="#10B981").pack(anchor=tk.W, pady=(0, 5))
+        
+        btn_row4 = ttk.Frame(out_frame)
+        btn_row4.pack(fill=tk.X)
+        ttk.Button(btn_row4, text="📋 نسخ الكود", command=self.copy_code).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(btn_row4, text="💾 حفظ HTML", command=self.save_html).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(btn_row4, text="📄 نشر كصفحة", command=self.publish_current, style="Accent.TButton").pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(btn_row4, text="🚀 نشر الكل", command=self.publish_all_selected, style="Success.TButton").pack(side=tk.LEFT)
+        
+        # --- OUTPUT ---
+        output_card = ttk.LabelFrame(right_col, text=" 💻  الكود المولد ", padding=15)
+        output_card.pack(fill=tk.BOTH, expand=True)
+        
+        self.output_text = scrolledtext.ScrolledText(
+            output_card, font=("Consolas", 10), wrap=tk.WORD, 
+            bg=self.card_bg, fg=self.fg_color, insertbackground=self.fg_color, 
+            relief="flat", highlightthickness=2, highlightbackground="#2A2A35",
+            highlightcolor=self.accent_color
+        )
+        self.output_text.pack(fill=tk.BOTH, expand=True, pady=5)
+
+    def get_current_blog_key(self):
+        """الحصول على مفتاح المدونة المختارة حاليًا"""
+        idx = self.blog_combo.current()
+        if idx >= 0 and idx < len(self.blog_keys):
+            return self.blog_keys[idx]
+        return None
+    
+    def get_current_manager(self):
+        """الحصول على مدير المدونة المختارة حاليًا"""
+        key = self.get_current_blog_key()
+        if key and key in blogger_managers:
+            return blogger_managers[key]
+        return None
+    
+    def update_blog_info(self):
+        """تحديث معلومات المدونة المختارة"""
+        key = self.get_current_blog_key()
+        if key:
+            config = BLOGGER_CONFIGS[key]
+            manager = blogger_managers[key]
+            status = "✅ متصل" if manager.service else "⚪ غير متصل"
+            self.blog_info_label.config(
+                text=f"Blog ID: {config['blog_id'][:15]}... | {status}",
+                foreground="#10B981" if manager.service else "#F59E0B"
+            )
+        else:
+            self.blog_info_label.config(text="")
+    
+    def on_blog_change(self, event=None):
+        """عند تغيير المدونة المختارة"""
+        self.update_blog_info()
+        key = self.get_current_blog_key()
+        if key:
+            name = BLOGGER_CONFIGS[key]['name']
+            self.status_label.config(text=f"🌐 المدونة المختارة: {name}", foreground="#10B981")
+
+    def get_extra_info(self):
+        return {
+            'league': self.league_entry.get().strip() or 'دوري كرة القدم',
+            'channel': self.channel_entry.get().strip() or 'قناة رياضية',
+            'commentator': self.commentator_entry.get().strip() or 'غير معروف',
+            'stadium': self.stadium_entry.get().strip() or 'ملعب غير معروف'
+        }
+    
+    def analyze_matches(self):
+        text = self.matches_input.get("1.0", tk.END)
+        self.matches = parse_matches(text)
+        
+        if not self.matches:
+            messagebox.showwarning("تنبيه", "❌ لم يتم العثور على مباريات صحيحة!")
+            return
+        
+        self.matches_listbox.delete(0, tk.END)
+        for i, match in enumerate(self.matches):
+            title = f"{match['team1']} × {match['team2']}" if match['team2'] else match['team1']
+            urls_count = len(match['urls'])
+            display_text = f"⏰ {match['time']} | {title} | 🔗 {urls_count} رابط"
+            self.matches_listbox.insert(tk.END, display_text)
+        
+        self.status_label.config(text=f"✅ تم تحليل {len(self.matches)} مباراة", foreground="#10B981")
+        self.selected_match = None
+        self.generated_pages = []
+        self.match_info_label.config(text="🎯 اختر مباراة (أو عدة مباريات) من القائمة")
+    
+    def select_all_matches(self):
+        if not self.matches:
+            messagebox.showwarning("تنبيه", "⚠️ لا توجد مباريات!")
+            return
+        self.matches_listbox.select_set(0, tk.END)
+        count = len(self.matches)
+        self.match_info_label.config(text=f"✅ تم تحديد {count} مباراة")
+        self.status_label.config(text=f"✅ تم تحديد {count} مباراة", foreground="#10B981")
+    
+    def deselect_all_matches(self):
+        self.matches_listbox.select_clear(0, tk.END)
+        self.match_info_label.config(text="🎯 اختر مباراة (أو عدة مباريات) من القائمة")
+        self.status_label.config(text="🗑️ تم إلغاء التحديد", foreground="#F59E0B")
+    
+    def on_match_select(self, event):
+        selection = self.matches_listbox.curselection()
+        if not selection:
+            return
+        
+        if len(selection) == 1:
+            index = selection[0]
+            self.selected_match = self.matches[index]
+            match = self.selected_match
+            title = f"{match['team1']} × {match['team2']}" if match['team2'] else match['team1']
+            info = f"✅ {title} | ⏰ {match['time']} | 🔗 {len(match['urls'])} رابط"
+            self.match_info_label.config(text=info)
+            self.status_label.config(text=f"✅ تم اختيار: {title}", foreground="#10B981")
+        else:
+            self.selected_match = self.matches[selection[0]]
+            info = f"🎯 تم تحديد {len(selection)} مباراة (Ctrl/Shift للاختيار)"
+            self.match_info_label.config(text=info)
+            self.status_label.config(text=f"🎯 تم تحديد {len(selection)} مباراة", foreground="#10B981")
+    
+    def get_selected_matches(self):
+        selection = self.matches_listbox.curselection()
+        if not selection:
+            return []
+        return [self.matches[i] for i in selection]
+    
+    def check_selection(self):
+        if not self.selected_match:
+            messagebox.showwarning("تنبيه", "⚠️ الرجاء اختيار مباراة أولاً!")
+            return False
+        return True
+    
+    def generate_card(self):
+        if not self.check_selection(): return
+        html = generate_match_card(self.selected_match, self.get_extra_info())
+        self.output_text.delete("1.0", tk.END)
+        self.output_text.insert(tk.END, html)
+        self.status_label.config(text="📋 تم توليد بطاقة Blogger", foreground="#10B981")
+    
+    def generate_page(self):
+        if not self.check_selection(): return
+        html = generate_full_page(self.selected_match, self.get_extra_info())
+        self.output_text.delete("1.0", tk.END)
+        self.output_text.insert(tk.END, html)
+        self.status_label.config(text="🌐 تم توليد صفحة كاملة", foreground="#10B981")
+    
+    def generate_mochril(self):
+        if not self.check_selection(): return
+        html = generate_mochril_page(self.selected_match)
+        self.output_text.delete("1.0", tk.END)
+        self.output_text.insert(tk.END, html)
+        self.status_label.config(text="🔴 تم توليد صفحة موشريل", foreground="#10B981")
+    
+    def generate_all_cards(self):
+        selected = self.get_selected_matches()
+        if not selected:
+            messagebox.showwarning("تنبيه", "⚠️ الرجاء اختيار مباراة واحدة على الأقل!")
+            return
+        
+        self.output_text.delete("1.0", tk.END)
+        extra = self.get_extra_info()
+        all_cards_html = ""
+        
+        for match in selected:
+            card_html = generate_match_card(match, extra)
+            all_cards_html += card_html + "\n"
+        
+        self.output_text.insert(tk.END, all_cards_html)
+        self.generated_pages = []
+        for match in selected:
+            title = f"{match['team1']} × {match['team2']}" if match['team2'] else match['team1']
+            self.generated_pages.append({
+                'title': title,
+                'content': generate_match_card(match, extra),
+                'match': match
+            })
+        
+        self.status_label.config(text=f"📑 تم توليد {len(selected)} بطاقة (كود واحد متصل)", foreground="#10B981")
+        messagebox.showinfo("نجاح", f"✅ تم توليد {len(selected)} بطاقة في كود واحد متصل!\n\n💡 جميع البطاقات كجزء من نفس الصفحة")
+    
+    def generate_all_pages(self):
+        selected = self.get_selected_matches()
+        if not selected:
+            messagebox.showwarning("تنبيه", "⚠️ الرجاء اختيار مباراة واحدة على الأقل!")
+            return
+        
+        self.output_text.delete("1.0", tk.END)
+        self.generated_pages = []
+        extra = self.get_extra_info()
+        combined_html = ""
+        
+        for i, match in enumerate(selected, 1):
+            title = f"{match['team1']} × {match['team2']}" if match['team2'] else match['team1']
+            html = generate_full_page(match, extra)
+            combined_html += f"\n\n{'='*80}\n"
+            combined_html += f"<!-- ========== صفحة {i}: {title} ========== -->\n"
+            combined_html += f"{'='*80}\n\n"
+            combined_html += html + "\n"
+            self.generated_pages.append({
+                'title': title,
+                'content': html,
+                'match': match
+            })
+        
+        self.output_text.insert(tk.END, combined_html)
+        self.status_label.config(text=f"🌐 تم توليد {len(selected)} صفحة كاملة", foreground="#10B981")
+        messagebox.showinfo("نجاح", f"✅ تم توليد {len(selected)} صفحة كاملة بنجاح!")
+    
+    def generate_all_mochrils(self):
+        selected = self.get_selected_matches()
+        if not selected:
+            messagebox.showwarning("تنبيه", "⚠️ الرجاء اختيار مباراة واحدة على الأقل!")
+            return
+        
+        self.output_text.delete("1.0", tk.END)
+        self.generated_pages = []
+        combined_html = ""
+        
+        for i, match in enumerate(selected, 1):
+            title = f"{match['team1']} × {match['team2']}" if match['team2'] else match['team1']
+            html = generate_mochril_page(match)
+            combined_html += f"\n\n{'='*80}\n"
+            combined_html += f"<!-- ========== صفحة موشريل {i}: {title} ========== -->\n"
+            combined_html += f"{'='*80}\n\n"
+            combined_html += html + "\n"
+            self.generated_pages.append({
+                'title': title,
+                'content': html,
+                'match': match
+            })
+        
+        self.output_text.insert(tk.END, combined_html)
+        self.status_label.config(text=f"🔴 تم توليد {len(selected)} صفحة موشريل", foreground="#10B981")
+        messagebox.showinfo("نجاح", f"✅ تم توليد {len(selected)} صفحة موشريل بنجاح!")
+    
+    def copy_code(self):
+        code = self.output_text.get("1.0", tk.END).strip()
+        if not code:
+            messagebox.showwarning("تنبيه", "⚠️ لا يوجد كود!")
+            return
+        self.clipboard_clear()
+        self.clipboard_append(code)
+        self.status_label.config(text="📋 تم النسخ!", foreground="#10B981")
+    
+    def save_html(self):
+        code = self.output_text.get("1.0", tk.END).strip()
+        if not code:
+            messagebox.showwarning("تنبيه", "⚠️ لا يوجد كود!")
+            return
+        
+        filename = filedialog.asksaveasfilename(
+            defaultextension=".html",
+            filetypes=[("HTML files", "*.html"), ("All files", "*.*")]
+        )
+        
+        if filename:
+            with open(filename, 'w', encoding='utf-8') as f:
+                f.write(code)
+            self.status_label.config(text=f"💾 تم الحفظ: {filename}", foreground="#10B981")
+    
+    # --- ⭐ دوال إدارة المدونة المختارة (ديناميكية) ⭐ ---
+    def authenticate_current_blog(self):
+        """مصادقة المدونة المختارة حاليًا"""
+        manager = self.get_current_manager()
+        if not manager:
+            messagebox.showwarning("تنبيه", "⚠️ لم يتم اختيار مدونة!")
+            return
+        
+        blog_name = manager.config['name']
+        self.status_label.config(text=f"🔐 جاري المصادقة: {blog_name}...", foreground="#F59E0B")
+        self.update()
+        
+        issues = manager.check_prerequisites()
+        if issues:
+            error_msg = f"⚠️ مشاكل في المتطلبات لـ {blog_name}:\n\n" + "\n".join(issues)
+            error_msg += "\n\nهل تريد المتابعة على أي حال؟"
+            if not messagebox.askyesno("تحذير", error_msg):
+                return
+        
+        success = manager.authenticate()
+        
+        if success:
+            self.update_blog_info()
+            self.status_label.config(text=f"✅ تمت المصادقة: {blog_name}", foreground="#10B981")
+            messagebox.showinfo("نجاح", f"✅ تمت المصادقة مع {blog_name} بنجاح!")
+        else:
+            self.status_label.config(text=f"❌ فشلت المصادقة: {blog_name}", foreground="#EF4444")
+            error_detail = manager.last_error or "خطأ غير معروف"
+            messagebox.showerror("خطأ", f"❌ فشلت المصادقة!\n\nالمدونة: {blog_name}\nالتفاصيل:\n{error_detail}")
+    
+    def test_current_blog_connection(self):
+        """اختبار اتصال المدونة المختارة حاليًا"""
+        manager = self.get_current_manager()
+        if not manager:
+            messagebox.showwarning("تنبيه", "⚠️ لم يتم اختيار مدونة!")
+            return
+        
+        if not manager.service:
+            blog_name = manager.config['name']
+            messagebox.showwarning("تنبيه", f"⚠️ يجب المصادقة أولاً!\nالمدونة: {blog_name}\nاضغط '🔐 مصادقة'")
+            return
+        
+        blog_name = manager.config['name']
+        self.status_label.config(text=f"🧪 جاري الاختبار: {blog_name}...", foreground="#F59E0B")
+        self.update()
+        
+        success, result = manager.test_connection()
+        
+        if success:
+            info = (
+                f"✅ الاتصال ناجح!\n\n"
+                f"📝 المدونة: {blog_name}\n"
+                f"📝 اسم المدونة: {result['name']}\n"
+                f"🌐 الرابط: {result['url']}\n"
+                f"📄 عدد الصفحات: {result['pages']}"
+            )
+            self.update_blog_info()
+            self.status_label.config(text=f"✅ اتصال ناجح: {blog_name}", foreground="#10B981")
+            messagebox.showinfo("نجاح", info)
+        else:
+            self.status_label.config(text=f"❌ فشل الاتصال: {blog_name}", foreground="#EF4444")
+            messagebox.showerror("خطأ", f"❌ فشل الاتصال!\n\nالمدونة: {blog_name}\nالتفاصيل:\n{result}")
+    
+    def force_reauth_current(self):
+        """إعادة مصادقة المدونة المختارة"""
+        manager = self.get_current_manager()
+        if not manager:
+            messagebox.showwarning("تنبيه", "⚠️ لم يتم اختيار مدونة!")
+            return
+        
+        blog_name = manager.config['name']
+        if messagebox.askyesno("تأكيد", f"⚠️ سيتم حذف token القديم وإعادة المصادقة.\nالمدونة: {blog_name}\n\nهل تريد المتابعة؟"):
+            self.authenticate_current_blog()
+    
+    def show_debug_log(self):
+        """عرض سجل التصحيح لجميع المدونات"""
+        log_window = tk.Toplevel(self)
+        log_window.title("🐛 سجل التصحيح")
+        log_window.geometry("800x600")
+        log_window.configure(bg=self.bg_color)
+        
+        log_text = scrolledtext.ScrolledText(
+            log_window, 
+            bg=self.card_bg, 
+            fg="#00ff00",
+            font=("Consolas", 11),
+            wrap=tk.WORD,
+            relief="flat",
+            highlightthickness=2,
+            highlightbackground="#2A2A35"
+        )
+        log_text.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        
+        log_content = ""
+        for key, manager in blogger_managers.items():
+            log_content += f"\n\n{'='*60}\n"
+            log_content += f"📝 {BLOGGER_CONFIGS[key]['name']}\n"
+            log_content += f"{'='*60}\n"
+            log_content += manager.get_debug_info() or "لا توجد سجلات"
+        
+        log_text.insert(tk.END, log_content.strip())
+        log_text.config(state=tk.DISABLED)
+        
+        btn_frame = tk.Frame(log_window, bg=self.bg_color)
+        btn_frame.pack(fill=tk.X, padx=20, pady=(0, 20))
+        
+        def copy_log():
+            log_window.clipboard_clear()
+            log_window.clipboard_append(log_content)
+            messagebox.showinfo("نجاح", "تم نسخ السجل!")
+        
+        def save_log():
+            filename = filedialog.asksaveasfilename(
+                defaultextension=".log",
+                filetypes=[("Log files", "*.log"), ("All files", "*.*")]
+            )
+            if filename:
+                with open(filename, 'w', encoding='utf-8') as f:
+                    f.write(log_content)
+                messagebox.showinfo("نجاح", f"تم الحفظ: {filename}")
+        
+        tk.Button(btn_frame, text="📋 نسخ السجل", command=copy_log, bg=self.accent_color, fg="white", activebackground=self.accent_hover, activeforeground="white", relief="flat", font=("Segoe UI", 10, "bold"), padx=15, pady=8).pack(side=tk.LEFT, padx=5)
+        tk.Button(btn_frame, text="💾 حفظ السجل", command=save_log, bg=self.card_bg, fg="white", activebackground="#333", activeforeground="white", relief="flat", font=("Segoe UI", 10, "bold"), padx=15, pady=8).pack(side=tk.LEFT, padx=5)
+        tk.Button(btn_frame, text="❌ إغلاق", command=log_window.destroy, bg="#333", fg="white", activebackground="#444", activeforeground="white", relief="flat", font=("Segoe UI", 10, "bold"), padx=15, pady=8).pack(side=tk.RIGHT, padx=5)
+    
+    def publish_current(self):
+        """نشر الصفحة الحالية على المدونة المختارة"""
+        code = self.output_text.get("1.0", tk.END).strip()
+        if not code:
+            messagebox.showwarning("تنبيه", "⚠️ لا يوجد كود!")
+            return
+        
+        if not self.selected_match:
+            messagebox.showwarning("تنبيه", "⚠️ اختر مباراة أولاً!")
+            return
+        
+        manager = self.get_current_manager()
+        if not manager:
+            messagebox.showwarning("تنبيه", "⚠️ لم يتم اختيار مدونة!")
+            return
+        
+        if not manager.service:
+            blog_name = manager.config['name']
+            messagebox.showwarning("تنبيه", f"⚠️ يجب المصادقة أولاً!\nالمدونة: {blog_name}\nاضغط '🔐 مصادقة'")
+            return
+        
+        blog_name = manager.config['name']
+        title = f"{self.selected_match['team1']} × {self.selected_match['team2']}" if self.selected_match['team2'] else self.selected_match['team1']
+        
+        self.status_label.config(text=f"⏳ جاري النشر على {blog_name}...", foreground="#F59E0B")
+        self.update()
+        
+        def do_publish():
+            url, error = manager.publish_page(title, code)
+            
+            if url:
+                self.after(0, lambda: self.status_label.config(text=f"✅ تم النشر على {blog_name}!", foreground="#10B981"))
+                self.after(0, lambda: messagebox.showinfo("نجاح", f"✅ تم نشر الصفحة بنجاح!\n\n📝 المدونة: {blog_name}\n🌐 الرابط:\n{url}"))
+            else:
+                self.after(0, lambda: self.status_label.config(text=f"❌ فشل النشر على {blog_name}!", foreground="#EF4444"))
+                self.after(0, lambda: messagebox.showerror("خطأ", f"❌ فشل نشر الصفحة!\n\nالمدونة: {blog_name}\nالتفاصيل:\n{error}\n\n💡 اضغط '🐛 سجل التصحيح' لمزيد من التفاصيل"))
+        
+        threading.Thread(target=do_publish, daemon=True).start()
+    
+    def publish_all_selected(self):
+        """نشر جميع المباريات المختارة على المدونة المختارة"""
+        selected = self.get_selected_matches()
+        
+        if not selected:
+            messagebox.showwarning("تنبيه", "⚠️ الرجاء اختيار مباراة واحدة على الأقل!")
+            return
+        
+        manager = self.get_current_manager()
+        if not manager:
+            messagebox.showwarning("تنبيه", "⚠️ لم يتم اختيار مدونة!")
+            return
+        
+        if not manager.service:
+            blog_name = manager.config['name']
+            messagebox.showwarning("تنبيه", f"⚠️ يجب المصادقة أولاً!\nالمدونة: {blog_name}\nاضغط '🔐 مصادقة'")
+            return
+        
+        blog_name = manager.config['name']
+        confirm = messagebox.askyesno(
+            "تأكيد النشر الجماعي",
+            f"📝 المدونة المستهدفة: {blog_name}\n\n"
+            f"سيتم نشر {len(selected)} مباراة كصفحات مستقلة.\n\n"
+            "كل مباراة ستكون صفحة منفصلة.\n\n"
+            "هل تريد المتابعة؟"
+        )
+        
+        if not confirm:
+            return
+        
+        self.status_label.config(text=f"⏳ جاري نشر {len(selected)} مباراة على {blog_name}...", foreground="#F59E0B")
+        self.update()
+        
+        def do_publish_all():
+            extra = self.get_extra_info()
+            results = []
+            
+            for i, match in enumerate(selected, 1):
+                title = f"{match['team1']} × {match['team2']}" if match['team2'] else match['team1']
+                html = generate_full_page(match, extra)
+                
+                self.after(0, lambda t=title, n=i: self.status_label.config(
+                    text=f"⏳ [{n}/{len(selected)}] {t} → {blog_name}", 
+                    foreground="#F59E0B"
+                ))
+                
+                url, error = manager.publish_page(title, html)
+                results.append({
+                    'title': title,
+                    'url': url,
+                    'error': error
+                })
+                
+                time.sleep(1)
+            
+            success_count = sum(1 for r in results if r['url'])
+            fail_count = len(results) - success_count
+            
+            report = f"📝 المدونة: {blog_name}\n"
+            report += f"✅ تم نشر {success_count} مباراة بنجاح\n"
+            report += f"❌ فشل نشر {fail_count} مباراة\n\n"
+            report += "📋 التفاصيل:\n" + "="*50 + "\n"
+            
+            for r in results:
+                if r['url']:
+                    report += f"✅ {r['title']}\n   🌐 {r['url']}\n\n"
+                else:
+                    report += f"❌ {r['title']}\n   ⚠️ {r['error']}\n\n"
+            
+            self.after(0, lambda: self.status_label.config(
+                text=f"✅ {success_count}/{len(results)} على {blog_name}", 
+                foreground="#10B981"
+            ))
+            self.after(0, lambda: messagebox.showinfo("نتائج النشر الجماعي", report))
+        
+        threading.Thread(target=do_publish_all, daemon=True).start()
+    
+    def clear_all(self):
+        self.matches_input.delete("1.0", tk.END)
+        self.matches_listbox.delete(0, tk.END)
+        self.output_text.delete("1.0", tk.END)
+        self.matches = []
+        self.selected_match = None
+        self.generated_pages = []
+        self.match_info_label.config(text="🎯 اختر مباراة (أو عدة مباريات) من القائمة")
+        self.status_label.config(text="🗑️ تم المسح", foreground="#F59E0B")
+
+# ==========================================
+# 11. تشغيل التطبيق
+# ==========================================
+if __name__ == "__main__":
+    print("=" * 60)
+    print("🎯 Saad Live - لوحة التحكم الاحترافية (متعددة المدونات)")
+    print("=" * 60)
+    for key, config in BLOGGER_CONFIGS.items():
+        print(f"📝 {config['name']}: {config['blog_id']}")
+    print("=" * 60)
+    
+    for key, manager in blogger_managers.items():
+        issues = manager.check_prerequisites()
+        if issues:
+            print(f"\n⚠️ تحذيرات لـ {BLOGGER_CONFIGS[key]['name']}:")
+            for issue in issues:
+                print(f"  {issue}")
+    
+    print("\n💡 تأكد من:")
+    print("  1. وجود ملفات credentials(3).json و credentials(4).json")
+    print("  2. تثبيت المكتبات: pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib")
+    print("  3. تفعيل Blogger API في Google Cloud Console")
+    print("=" * 60)
+    
+    app = SaadLiveApp()
+    app.mainloop()

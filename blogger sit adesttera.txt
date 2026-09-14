@@ -1,0 +1,797 @@
+"""
+╔══════════════════════════════════════════════════════════════════╗
+║     ULTIMATE HUMAN BEHAVIOR BOT - WAF & CAPTCHA BYPASS 2030     ║
+║     ✅ Fixed: Cloudflare Bypass + Residential Proxies + 2Captcha║
+╚══════════════════════════════════════════════════════════════════╝
+"""
+
+from flask import Flask, render_template_string, jsonify, request, Response
+import time
+import random
+import requests
+import subprocess
+import re
+import os
+import sys
+import threading
+import queue
+import webbrowser
+import shutil
+import json
+import hashlib
+import traceback
+import math
+import base64
+from datetime import datetime, timedelta
+from functools import wraps
+import platform as platform_module
+
+# Selenium & Chrome
+import undetected_chromedriver as uc
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+# Web & Parsing
+from bs4 import BeautifulSoup
+import urllib3
+
+# Encryption
+try:
+    from cryptography.fernet import Fernet
+    ENCRYPTION_AVAILABLE = True
+except ImportError:
+    ENCRYPTION_AVAILABLE = False
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+app = Flask(__name__)
+
+# ============================================
+# CONFIGURATION
+# ============================================
+CONFIG = {
+    'MAX_LOGIN_HISTORY': 50,
+    'SCREENSHOT_ENABLED': True,
+    'MIN_PROXY_SPEED': 5.0,
+}
+
+# ============================================
+# GLOBAL STATE
+# ============================================
+log_queue = queue.Queue()
+bot_state = {
+    'running': False,
+    'stop_requested': False,
+    'thread': None,
+    'config': {
+        'target_url': "https://www.saad-live.kozow.com/",
+        'proxy_site': "https://free-proxy-list.net/fr/",
+        'num_visits': 1,
+        'gmail_accounts': [],
+        'residential_proxies': "",
+        'captcha_api_key': ""
+    }
+}
+
+ACCOUNTS_FILE = "accounts_encrypted.json"
+STATS_FILE = "statistics.json"
+SESSIONS_DIR = "sessions"
+SCREENSHOTS_DIR = "screenshots"
+
+os.makedirs(SESSIONS_DIR, exist_ok=True)
+os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
+
+def log(msg):
+    timestamp = datetime.now().strftime('%H:%M:%S')
+    formatted = f"[{timestamp}] {msg}"
+    print(formatted)
+    log_queue.put(str(formatted))
+
+# ============================================
+# 🔐 ENCRYPTION
+# ============================================
+class EncryptionManager:
+    def __init__(self):
+        self.cipher = None
+        if ENCRYPTION_AVAILABLE:
+            self._init_cipher()
+    
+    def _init_cipher(self):
+        try:
+            key_file = "encryption.key"
+            if os.path.exists(key_file):
+                with open(key_file, 'rb') as f:
+                    self.key = f.read()
+            else:
+                self.key = Fernet.generate_key()
+                with open(key_file, 'wb') as f:
+                    f.write(self.key)
+            self.cipher = Fernet(self.key)
+        except:
+            self.cipher = None
+    
+    def encrypt_data(self, data):
+        if not self.cipher:
+            return json.dumps(data)
+        try:
+            encrypted = self.cipher.encrypt(json.dumps(data).encode())
+            return base64.b64encode(encrypted).decode()
+        except:
+            return json.dumps(data)
+    
+    def decrypt_data(self, encrypted_str):
+        if not self.cipher:
+            return json.loads(encrypted_str)
+        try:
+            encrypted = base64.b64decode(encrypted_str.encode())
+            decrypted = self.cipher.decrypt(encrypted)
+            return json.loads(decrypted.decode())
+        except:
+            return json.loads(encrypted_str)
+
+encryption = EncryptionManager()
+
+# ============================================
+# 🛡️ CAPTCHA SOLVER (2Captcha / CapMonster)
+# ============================================
+class CaptchaSolver:
+    def __init__(self, api_key):
+        self.api_key = api_key
+        self.in_url = "http://2captcha.com/in.php"
+        self.res_url = "http://2captcha.com/res.php"
+
+    def _send_task(self, data):
+        if not self.api_key: return None
+        try:
+            res = requests.post(self.in_url, data=data, timeout=15).json()
+            if res.get("status") == 1:
+                return res.get("request")
+            else:
+                log(f"    [❌] 2Captcha Error: {res.get('request')}")
+                return None
+        except Exception as e:
+            log(f"    [❌] 2Captcha Network Error: {e}")
+            return None
+
+    def _get_result(self, task_id):
+        for _ in range(24): # Wait up to 2 minutes
+            if bot_state['stop_requested']: return None
+            time.sleep(5)
+            try:
+                res = requests.get(f"{self.res_url}?key={self.api_key}&action=get&id={task_id}&json=1", timeout=10).json()
+                if res.get("status") == 1:
+                    return res.get("request")
+                elif res.get("request") == "CAPCHA_NOT_READY":
+                    continue
+                else:
+                    log(f"    [❌] 2Captcha Failed: {res.get('request')}")
+                    return None
+            except:
+                continue
+        return None
+
+    def solve_turnstile(self, url, sitekey):
+        if not self.api_key: return None
+        log(f"    [🧩] إرسال Cloudflare Turnstile لـ 2Captcha...")
+        data = {
+            "key": self.api_key, "method": "turnstile",
+            "sitekey": sitekey, "pageurl": url, "json": 1
+        }
+        task_id = self._send_task(data)
+        if task_id: return self._get_result(task_id)
+        return None
+
+    def solve_recaptcha(self, url, sitekey):
+        if not self.api_key: return None
+        log(f"    [🧩] إرسال reCAPTCHA لـ 2Captcha...")
+        data = {
+            "key": self.api_key, "method": "userrecaptcha",
+            "googlekey": sitekey, "pageurl": url, "json": 1
+        }
+        task_id = self._send_task(data)
+        if task_id: return self._get_result(task_id)
+        return None
+
+# ============================================
+# 🏠 RESIDENTIAL PROXY MANAGER
+# ============================================
+class ResidentialProxyManager:
+    def __init__(self):
+        self.proxies = []
+        self.index = 0
+        self.lock = threading.Lock()
+        self.fallback_to_free = False
+
+    def load_proxies(self, proxy_text):
+        self.proxies = []
+        if not proxy_text.strip():
+            self.fallback_to_free = True
+            return
+            
+        lines = proxy_text.strip().split('\n')
+        for line in lines:
+            line = line.strip()
+            if not line: continue
+            
+            # Format: http://user:pass@ip:port
+            if '://' in line:
+                self.proxies.append(line)
+            # Format: ip:port:user:pass
+            elif line.count(':') == 3:
+                parts = line.split(':')
+                self.proxies.append(f"http://{parts[2]}:{parts[3]}@{parts[0]}:{parts[1]}")
+            # Format: ip:port
+            elif line.count(':') == 1:
+                self.proxies.append(f"http://{line}")
+            else:
+                self.proxies.append(f"http://{line}")
+                
+        log(f"[✅] تم تحميل {len(self.proxies)} Residential Proxy")
+        self.fallback_to_free = len(self.proxies) == 0
+
+    def get_next_proxy(self):
+        with self.lock:
+            if not self.proxies: return None
+            proxy = self.proxies[self.index % len(self.proxies)]
+            self.index += 1
+            return proxy
+
+# ============================================
+# 🎭 FINGERPRINT SYSTEM (FIXED)
+# ============================================
+class AdvancedFingerprint:
+    DEVICES = [
+        {'name': 'Windows 11 Pro - Chrome 120', 'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', 'platform': 'Win32', 'screen_resolution': '1920x1080', 'color_depth': 24, 'language': 'fr-FR', 'timezone': 'Europe/Paris', 'hardware_concurrency': 8, 'device_memory': 8, 'webgl_vendor': 'Google Inc. (Intel)', 'webgl_renderer': 'ANGLE (Intel, Intel(R) UHD Graphics 630, OpenGL 4.1)', 'max_touch_points': 0, 'connection_type': 'wifi', 'effective_type': '4g', 'downlink': 10, 'rtt': 50},
+        {'name': 'Windows 10 Home - Chrome 119', 'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36', 'platform': 'Win32', 'screen_resolution': '2560x1440', 'color_depth': 32, 'language': 'en-US', 'timezone': 'America/New_York', 'hardware_concurrency': 16, 'device_memory': 16, 'webgl_vendor': 'Google Inc. (NVIDIA)', 'webgl_renderer': 'ANGLE (NVIDIA, NVIDIA GeForce RTX 3060, OpenGL 4.5)', 'max_touch_points': 0, 'connection_type': 'wifi', 'effective_type': '4g', 'downlink': 15, 'rtt': 30},
+        {'name': 'macOS Sonoma - Chrome 120', 'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', 'platform': 'MacIntel', 'screen_resolution': '2560x1600', 'color_depth': 30, 'language': 'fr-FR', 'timezone': 'Europe/Paris', 'hardware_concurrency': 12, 'device_memory': 16, 'webgl_vendor': 'Google Inc. (Apple)', 'webgl_renderer': 'ANGLE (Apple, Apple M1 Pro, OpenGL 4.1)', 'max_touch_points': 0, 'connection_type': 'wifi', 'effective_type': '4g', 'downlink': 20, 'rtt': 25},
+    ]
+    
+    @staticmethod
+    def get_random_device():
+        return random.choice(AdvancedFingerprint.DEVICES)
+    
+    @staticmethod
+    def generate_fingerprint(device, account_email):
+        hash_input = f"{account_email}_{device['name']}_{time.time()}_{random.random()}"
+        fingerprint_hash = hashlib.md5(hash_input.encode()).hexdigest()
+        return {
+            'device_name': device['name'], 'user_agent': device['user_agent'], 'platform': device['platform'],
+            'screen_resolution': device['screen_resolution'], 'color_depth': device['color_depth'],
+            'language': device['language'], 'timezone': device['timezone'],
+            'hardware_concurrency': device['hardware_concurrency'], 'device_memory': device['device_memory'],
+            'webgl_vendor': device['webgl_vendor'], 'webgl_renderer': device['webgl_renderer'],
+            'max_touch_points': device['max_touch_points'], 'connection_type': device['connection_type'],
+            'effective_type': device['effective_type'], 'downlink': device['downlink'], 'rtt': device['rtt'],
+            'canvas_hash': fingerprint_hash[:16], 'audio_hash': fingerprint_hash[16:32],
+            'session_id': hashlib.md5(f"{account_email}_{time.time()}".encode()).hexdigest()[:12]
+        }
+    
+    @staticmethod
+    def apply_fingerprint(driver, fingerprint):
+        log(f"    [🎭] تطبيق البصمة: {fingerprint['device_name']}")
+        
+        full_script = f"""
+        // Fix Navigator Properties safely (Prevents Chrome Crash)
+        const props = [
+            {{name: 'platform', value: '{fingerprint["platform"]}'}},
+            {{name: 'language', value: '{fingerprint["language"]}'}},
+            {{name: 'languages', value: ['{fingerprint["language"]}', 'en']}},
+            {{name: 'hardwareConcurrency', value: {fingerprint["hardware_concurrency"]}}},
+            {{name: 'deviceMemory', value: {fingerprint["device_memory"]}}},
+            {{name: 'maxTouchPoints', value: {fingerprint["max_touch_points"]}}},
+            {{name: 'webdriver', value: undefined}} // CRITICAL FOR CLOUDFLARE
+        ];
+        props.forEach(p => {{
+            try {{
+                Object.defineProperty(navigator, p.name, {{get: () => p.value, configurable: true}});
+            }} catch(e) {{}}
+        }});
+        
+        // WebGL Spoof
+        const getParameter = WebGLRenderingContext.prototype.getParameter;
+        WebGLRenderingContext.prototype.getParameter = function(parameter) {{
+            if (parameter === 37445) return '{fingerprint["webgl_vendor"]}';
+            if (parameter === 37446) return '{fingerprint["webgl_renderer"]}';
+            return getParameter.apply(this, arguments);
+        }};
+        
+        // Screen
+        Object.defineProperty(screen, 'width', {{get: () => {fingerprint["screen_resolution"].split('x')[0]}, configurable: true}});
+        Object.defineProperty(screen, 'height', {{get: () => {fingerprint["screen_resolution"].split('x')[1]}, configurable: true}});
+        
+        window.chrome = {{runtime: {{}}, loadTimes: function() {{}}, csi: function() {{}}}};
+        """
+        
+        try:
+            driver.execute_script(full_script)
+            log("    [✅] تم تطبيق البصمة بنجاح")
+        except Exception as e:
+            log(f"    [⚠️] خطأ في البصمة: {str(e)[:50]}")
+
+# ============================================
+# 📊 STATISTICS & PERSISTENCE (Same as before)
+# ============================================
+class StatisticsTracker:
+    def __init__(self):
+        self.stats = self.load_stats()
+    def load_stats(self):
+        try:
+            if os.path.exists(STATS_FILE):
+                with open(STATS_FILE, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    data.setdefault('total_visits', 0)
+                    data.setdefault('successful_visits', 0)
+                    data.setdefault('failed_visits', 0)
+                    data.setdefault('accounts_history', {})
+                    data.setdefault('proxy_stats', {})
+                    return data
+        except: pass
+        return {'total_visits': 0, 'successful_visits': 0, 'failed_visits': 0, 'accounts_history': {}, 'proxy_stats': {}}
+    def save_stats(self):
+        try:
+            with open(STATS_FILE, 'w', encoding='utf-8') as f: json.dump(self.stats, f, indent=2, ensure_ascii=False)
+        except: pass
+    def record_visit(self, account_email, success, proxy, duration, fingerprint):
+        self.stats['total_visits'] += 1
+        if success: self.stats['successful_visits'] += 1
+        else: self.stats['failed_visits'] += 1
+        if proxy:
+            if proxy not in self.stats['proxy_stats']: self.stats['proxy_stats'][proxy] = {'used': 0, 'success': 0, 'failed': 0}
+            self.stats['proxy_stats'][proxy]['used'] += 1
+            if success: self.stats['proxy_stats'][proxy]['success'] += 1
+            else: self.stats['proxy_stats'][proxy]['failed'] += 1
+        self.save_stats()
+stats_tracker = StatisticsTracker()
+
+def load_accounts():
+    try:
+        if os.path.exists(ACCOUNTS_FILE):
+            with open(ACCOUNTS_FILE, 'r', encoding='utf-8') as f:
+                content = f.read()
+                if content.startswith('gAAAAA'): return encryption.decrypt_data(content)
+                else: return json.loads(content)
+    except: pass
+    return []
+
+def save_accounts():
+    try:
+        if ENCRYPTION_AVAILABLE:
+            encrypted = encryption.encrypt_data(bot_state['config']['gmail_accounts'])
+            with open(ACCOUNTS_FILE, 'w', encoding='utf-8') as f: f.write(encrypted)
+        else:
+            with open(ACCOUNTS_FILE, 'w', encoding='utf-8') as f: json.dump(bot_state['config']['gmail_accounts'], f, indent=2, ensure_ascii=False)
+    except: pass
+
+# ============================================
+# 🌐 CHROME & WAF BYPASS
+# ============================================
+def get_chrome_version():
+    try:
+        result = subprocess.run(['reg', 'query', 'HKEY_CURRENT_USER\\Software\\Google\\Chrome\\BLBeacon', '/v', 'version'], capture_output=True, text=True, timeout=5, shell=True)
+        match = re.search(r'(\d+)', result.stdout)
+        if match: return int(match.group(1))
+    except: pass
+    return None
+
+def kill_chromedriver_processes():
+    try:
+        if os.name == 'nt':
+            subprocess.run(['taskkill', '/F', '/IM', 'chromedriver.exe', '/T'], capture_output=True, timeout=5)
+            subprocess.run(['taskkill', '/F', '/IM', 'chrome.exe', '/T'], capture_output=True, timeout=5)
+    except: pass
+
+def fix_winerror_183():
+    kill_chromedriver_processes()
+    time.sleep(2)
+    appdata = os.environ.get('APPDATA')
+    if appdata:
+        uc_folder = os.path.join(appdata, 'undetected_chromedriver')
+        if os.path.exists(uc_folder):
+            try: shutil.rmtree(uc_folder)
+            except: pass
+
+def create_stealth_chrome(proxy, account_email):
+    options = uc.ChromeOptions()
+    device = AdvancedFingerprint.get_random_device()
+    fingerprint = AdvancedFingerprint.generate_fingerprint(device, account_email)
+    
+    for acc in bot_state['config']['gmail_accounts']:
+        if acc['email'] == account_email:
+            acc['device_info'] = fingerprint
+            break
+    
+    profile_name = re.sub(r'[^\w\-]', '_', account_email.split('@')[0])
+    profile_dir = os.path.join(os.getcwd(), "chrome_profiles", profile_name)
+    os.makedirs(profile_dir, exist_ok=True)
+    options.add_argument(f"--user-data-dir={profile_dir}")
+    
+    if proxy:
+        options.add_argument(f'--proxy-server={proxy}')
+    
+    options.add_argument('--window-size=1920,1080')
+    options.add_argument('--start-maximized')
+    options.add_argument('--disable-notifications')
+    options.add_argument('--disable-infobars')
+    options.add_argument('--ignore-certificate-errors')
+    options.add_argument('--no-first-run')
+    options.add_argument('--no-default-browser-check')
+    options.add_argument('--disable-blink-features=AutomationControlled')
+    
+    options.add_argument(f'--timezone={fingerprint["timezone"]}')
+    options.add_argument(f'--lang={fingerprint["language"]}')
+    options.add_argument(f'--user-agent={fingerprint["user_agent"]}')
+    
+    chrome_version = get_chrome_version()
+    if chrome_version: driver = uc.Chrome(options=options, version_main=chrome_version)
+    else: driver = uc.Chrome(options=options)
+    
+    AdvancedFingerprint.apply_fingerprint(driver, fingerprint)
+    return driver, fingerprint
+
+def check_and_solve_captcha(driver, solver):
+    try:
+        # Check for Cloudflare Turnstile
+        turnstile = driver.find_elements(By.CLASS_NAME, "cf-turnstile")
+        if turnstile:
+            sitekey = turnstile[0].get_attribute("data-sitekey")
+            if sitekey:
+                log(f"    [🛡️] Cloudflare Turnstile Detected!")
+                token = solver.solve_turnstile(driver.current_url, sitekey)
+                if token:
+                    driver.execute_script(f"""
+                        document.querySelector('[name="cf-turnstile-response"]').value = '{token}';
+                        if (window.cfCallback) window.cfCallback('{token}');
+                        if (window.turnstile) window.turnstile.reset();
+                    """)
+                    log("    [✅] تم حل Turnstile وحقن التوكن!")
+                    time.sleep(3)
+                    return True
+        
+        # Check for reCAPTCHA
+        recaptcha = driver.find_elements(By.CLASS_NAME, "g-recaptcha")
+        if recaptcha:
+            sitekey = recaptcha[0].get_attribute("data-sitekey")
+            if sitekey:
+                log(f"    [🛡️] reCAPTCHA Detected!")
+                token = solver.solve_recaptcha(driver.current_url, sitekey)
+                if token:
+                    driver.execute_script(f"document.getElementById('g-recaptcha-response').innerHTML = '{token}';")
+                    log("    [✅] تم حل reCAPTCHA!")
+                    time.sleep(2)
+                    return True
+    except Exception as e:
+        pass
+    return False
+
+def stealth_navigate(driver, target_url):
+    log("  [*] 🌐 التوجه للصفحة بوضع التخفي...")
+    driver.delete_all_cookies()
+    
+    # Simulate Google Referrer to bypass some basic WAFs
+    driver.get("https://www.google.com/")
+    time.sleep(random.uniform(1, 2))
+    
+    driver.get(target_url)
+    
+    log("  [*] ⏳ انتظار تحميل الصفحة / تجاوز Cloudflare...")
+    try:
+        WebDriverWait(driver, 15).until(lambda d: d.execute_script("return document.readyState") == "complete")
+    except: pass
+        
+    time.sleep(3)
+    return True
+
+# ============================================
+# 🖱️ BEHAVIOR SIMULATION
+# ============================================
+class HumanBehaviorSimulator:
+    @staticmethod
+    def simulate_scroll(driver):
+        try:
+            total_height = driver.execute_script("return document.body.scrollHeight")
+            current = 0
+            for _ in range(random.randint(3, 6)):
+                if bot_state['stop_requested']: return
+                scroll = random.randint(200, 500)
+                current += scroll
+                driver.execute_script(f"window.scrollTo({{top: {current}, behavior: 'smooth'}});")
+                time.sleep(random.uniform(1.5, 3.5))
+        except: pass
+    
+    @staticmethod
+    def advanced_session(driver):
+        log("    [*] 🧠 بدء جلسة سلوكية...")
+        HumanBehaviorSimulator.simulate_scroll(driver)
+        time.sleep(random.uniform(3, 6))
+behavior_simulator = HumanBehaviorSimulator()
+
+# ============================================
+# 🚀 MAIN VISIT LOGIC
+# ============================================
+def do_visit(account, visit_num, solver, res_proxy_manager):
+    num_visits = bot_state['config']['num_visits']
+    target_url = bot_state['config']['target_url']
+    
+    log(f"\n{'='*60}")
+    log(f"🚀 VISITE {visit_num}/{num_visits} | Gmail: {account['email']}")
+    log(f"{'='*60}")
+    
+    proxy = res_proxy_manager.get_next_proxy()
+    if proxy:
+        log(f"  [🏠] Residential Proxy: {proxy}")
+    else:
+        log(f"  [⚠️] No Residential Proxy available, using Direct/Bot Proxy...")
+        
+    account['proxy'] = proxy
+    driver = None
+    start_time = time.time()
+    fingerprint = None
+    
+    try:
+        if bot_state['stop_requested']: return False
+        
+        driver, fingerprint = create_stealth_chrome(proxy, account['email'])
+        stealth_navigate(driver, target_url)
+        
+        # WAF & CAPTCHA BYPASS
+        check_and_solve_captcha(driver, solver)
+        
+        behavior_simulator.advanced_session(driver)
+        
+        duration = time.time() - start_time
+        log(f"  [✅] ✅ VISITE {visit_num} نجحت! ({duration:.1f}s)")
+        stats_tracker.record_visit(account['email'], True, proxy, duration, fingerprint)
+        account['status'] = 'online'
+        save_accounts()
+        return True
+        
+    except Exception as e:
+        log(f"  [❌] خطأ: {str(e)[:150]}")
+        duration = time.time() - start_time
+        stats_tracker.record_visit(account['email'], False, proxy, duration, fingerprint)
+        return False
+    finally:
+        if driver:
+            try: time.sleep(2); driver.quit()
+            except: pass
+
+def bot_thread():
+    try:
+        log("="*70)
+        log(f"🎯 ULTIMATE HUMAN VISITOR | Target: {bot_state['config']['target_url']}")
+        log("="*70)
+        
+        target_url = bot_state['config']['target_url']
+        
+        accounts = bot_state['config']['gmail_accounts']
+        active_accounts = [acc for acc in accounts if acc.get('status') == 'online']
+        if not active_accounts:
+            log("[❌] مكاينش حسابات نشطة!"); return
+        
+        # Initialize Proxies & Solver
+        proxy_text = bot_state['config'].get('residential_proxies', '')
+        res_proxy_manager = ResidentialProxyManager()
+        res_proxy_manager.load_proxies(proxy_text)
+        
+        captcha_key = bot_state['config'].get('captcha_api_key', '')
+        solver = CaptchaSolver(captcha_key)
+        
+        success_count = 0
+        num_visits = bot_state['config']['num_visits']
+        
+        for i in range(num_visits):
+            if bot_state['stop_requested']: break
+            account = active_accounts[i % len(active_accounts)]
+            
+            if do_visit(account, i + 1, solver, res_proxy_manager):
+                success_count += 1
+            
+            if i < num_visits - 1:
+                delay = random.uniform(8, 20)
+                log(f"  [*] ⏱️ انتظار {delay:.0f} ثواني قبل الزيارة التالية...")
+                time.sleep(delay)
+        
+        log("\n" + "="*70)
+        log(f"🎉 انتهت! {success_count}/{num_visits} زيارة ناجحة!")
+        log("="*70)
+        
+    except Exception as e:
+        log(f"\n[❌] خطأ فادح: {e}")
+    finally:
+        bot_state['running'] = False
+        bot_state['stop_requested'] = False
+        log_queue.put("[DONE]")
+
+# ============================================
+# 🌐 FLASK ROUTES & UI
+# ============================================
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>Ultimate Human Bot - WAF Bypass 2030</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); font-family: 'Segoe UI'; min-height: 100vh; padding: 20px; }
+        .main-container { background: rgba(255, 255, 255, 0.98); border-radius: 20px; padding: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 1400px; margin: 0 auto; }
+        .console { background: #1a1a2e; color: #0f0; padding: 20px; border-radius: 10px; height: 450px; overflow-y: auto; font-family: 'Courier New'; font-size: 12px; white-space: pre-wrap; direction: ltr; text-align: left; }
+        .card { border: none; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .header-title { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 2.5em; font-weight: bold; }
+        .btn-action { border-radius: 25px; padding: 10px 25px; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <h1 class="mb-2 text-center header-title">🎯 Ultimate Human Bot - WAF Bypass 2030</h1>
+        <p class="text-center text-muted mb-4">نظام متقدم مع Residential Proxies + Anti-CAPTCHA (Cloudflare/Recaptcha)</p>
+        
+        <div class="card">
+            <div class="card-header bg-dark text-white">⚙️ الإعدادات العامة</div>
+            <div class="card-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Target URL</label>
+                        <input type="text" id="targetUrl" class="form-control" value="{{ target_url }}" dir="ltr">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">عدد الزيارات</label>
+                        <input type="number" id="numVisits" class="form-control" value="{{ num_visits }}" min="1">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">🔑 2Captcha API Key</label>
+                        <input type="text" id="captchaApiKey" class="form-control" value="{{ captcha_api_key }}" placeholder="API Key" dir="ltr">
+                    </div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-12">
+                        <label class="form-label">🏠 Residential Proxies (ip:port:user:pass أو http://user:pass@ip:port)</label>
+                        <textarea id="residentialProxies" class="form-control" rows="4" dir="ltr" placeholder="127.0.0.1:8000:user:pass&#10;http://user2:pass2@192.168.1.1:8080">{{ residential_proxies }}</textarea>
+                        <small class="text-muted">* إذا تركت الحقل فارغاً، سيتم استخدام الاتصال المباشر (Direct IP).</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-3 mb-4 align-items-center">
+            <button id="startBtn" class="btn btn-success btn-lg btn-action flex-grow-1">▶️ Start Bot</button>
+            <button id="stopBtn" class="btn btn-danger btn-lg btn-action flex-grow-1" disabled>⏹️ Stop Bot</button>
+            <h5 class="mb-0">Status: <span id="status" class="text-muted">Idle</span></h5>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-dark text-white">📊 Live Console Logs</div>
+            <div class="card-body p-0">
+                <div id="console" class="console"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isRunning = false;
+        let eventSource = null;
+
+        document.getElementById('startBtn').addEventListener('click', startBot);
+        document.getElementById('stopBtn').addEventListener('click', stopBot);
+
+        function startBot() {
+            const data = {
+                target_url: document.getElementById('targetUrl').value,
+                num_visits: parseInt(document.getElementById('numVisits').value),
+                residential_proxies: document.getElementById('residentialProxies').value,
+                captcha_api_key: document.getElementById('captchaApiKey').value
+            };
+
+            fetch('/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'started') {
+                    isRunning = true;
+                    updateUI();
+                    connectToLogs();
+                } else { alert("❌ " + data.message); }
+            });
+        }
+
+        function stopBot() {
+            fetch('/stop', { method: 'POST' }).then(() => { isRunning = false; updateUI(); if(eventSource) eventSource.close(); });
+        }
+
+        function connectToLogs() {
+            if (eventSource) eventSource.close();
+            eventSource = new EventSource('/stream');
+            const consoleDiv = document.getElementById('console');
+            eventSource.onmessage = function(event) {
+                if (event.data === '[DONE]') { isRunning = false; updateUI(); eventSource.close(); return; }
+                consoleDiv.textContent += event.data + '\\n';
+                consoleDiv.scrollTop = consoleDiv.scrollHeight;
+            };
+        }
+
+        function updateUI() {
+            document.getElementById('startBtn').disabled = isRunning;
+            document.getElementById('stopBtn').disabled = !isRunning;
+            const status = document.getElementById('status');
+            status.textContent = isRunning ? 'Running' : 'Idle';
+            status.className = isRunning ? 'text-success fw-bold' : 'text-muted';
+        }
+    </script>
+</body>
+</html>
+"""
+
+@app.route('/')
+def index():
+    return render_template_string(HTML_TEMPLATE, 
+                                  target_url=bot_state['config']['target_url'],
+                                  num_visits=bot_state['config']['num_visits'],
+                                  residential_proxies=bot_state['config']['residential_proxies'],
+                                  captcha_api_key=bot_state['config']['captcha_api_key'])
+
+@app.route('/start', methods=['POST'])
+def start_bot():
+    if bot_state['running']: return jsonify({'status': 'error', 'message': 'Bot is already running!'})
+    data = request.json
+    bot_state['config']['target_url'] = data.get('target_url')
+    bot_state['config']['num_visits'] = int(data.get('num_visits', 1))
+    bot_state['config']['residential_proxies'] = data.get('residential_proxies', '')
+    bot_state['config']['captcha_api_key'] = data.get('captcha_api_key', '')
+    
+    bot_state['running'] = True
+    bot_state['stop_requested'] = False
+    while not log_queue.empty(): log_queue.get()
+    
+    bot_state['thread'] = threading.Thread(target=bot_thread, daemon=True)
+    bot_state['thread'].start()
+    return jsonify({'status': 'started'})
+
+@app.route('/stop', methods=['POST'])
+def stop_bot():
+    bot_state['stop_requested'] = True
+    return jsonify({'status': 'stopping'})
+
+@app.route('/stream')
+def stream():
+    def generate():
+        while True:
+            try:
+                msg = log_queue.get(timeout=1.0)
+                yield f"data: {msg}\n\n"
+                if msg == "[DONE]": break
+            except queue.Empty:
+                if not bot_state['running'] and log_queue.empty():
+                    yield f"data: [DONE]\n\n"
+                    break
+                continue
+    response = Response(generate(), mimetype='text/event-stream')
+    response.headers['Cache-Control'] = 'no-cache'
+    return response
+
+@app.route('/add_account', methods=['POST'])
+def add_account():
+    try:
+        data = request.json
+        email = data.get('email', '').strip()
+        if not email or '@' not in email: return jsonify({'status': 'error'})
+        bot_state['config']['gmail_accounts'].append({'email': email, 'status': 'online'})
+        save_accounts()
+        return jsonify({'status': 'success'})
+    except: return jsonify({'status': 'error'})
+
+@app.route('/get_accounts')
+def get_accounts(): return jsonify(bot_state['config']['gmail_accounts'])
+
+if __name__ == '__main__':
+    fix_winerror_183()
+    bot_state['config']['gmail_accounts'] = load_accounts()
+    if not bot_state['config']['gmail_accounts']:
+        # Add dummy account for testing if empty
+        bot_state['config']['gmail_accounts'].append({'email': 'test@demo.com', 'status': 'online'})
+        save_accounts()
+        
+    log(f"[✅] تم تحميل {len(bot_state['config']['gmail_accounts'])} حساب")
+    webbrowser.open('http://127.0.0.1:5000')
+    app.run(host='127.0.0.1', port=5000, debug=False, threaded=True)
