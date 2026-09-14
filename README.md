@@ -1,0 +1,2 @@
+# hadrix
+hada fih kolchi
